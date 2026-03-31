@@ -1,0 +1,117 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "topo-llm"
+version = "0.1.0"
+description = "Riemannian geometry, persistent topology, and information geometry of LLM embedding spaces"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "ADA" },
+]
+keywords = [
+    "llm",
+    "topology",
+    "riemannian-geometry",
+    "persistent-homology",
+    "information-geometry",
+    "hallucination-detection",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.11",
+    "scikit-learn>=1.3",
+    "pandas>=2.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+torch = [
+    "torch>=2.0",
+    "transformers>=4.35",
+    "accelerate>=0.24",
+    "datasets>=2.14",
+]
+jax = [
+    "jax>=0.4",
+    "jaxlib>=0.4",
+]
+tda = [
+    "ripser>=0.6",
+    "persim>=0.3",
+    "gudhi>=3.8",
+    "giotto-tda>=0.6",
+]
+geometry = [
+    "geomstats>=2.7",
+]
+viz = [
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "plotly>=5.18",
+    "pyvista>=0.42",
+    "umap-learn>=0.5",
+]
+app = [
+    "streamlit>=1.28",
+    "openai>=1.0",
+]
+all = [
+    "topo-llm[torch,jax,tda,geometry,viz,app]",
+]
+dev = [
+    "topo-llm[all]",
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-xdist>=3.3",
+    "ruff>=0.1",
+    "mypy>=1.7",
+    "pre-commit>=3.5",
+]
+
+[project.scripts]
+topo-llm = "topo_llm.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests that load real models (deselect with '-m \"not slow\"')",
+    "gpu: marks tests requiring CUDA GPU",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

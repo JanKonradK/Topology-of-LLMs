@@ -1,0 +1,53 @@
+# ═══════════════════════════════════════════════════════════════
+# topo-llm default configuration
+# ═══════════════════════════════════════════════════════════════
+# Override any value with env vars prefixed TOPO_LLM_
+# e.g. TOPO_LLM_DEVICE=cpu
+
+# ── Global ────────────────────────────────────────────────────
+device: "auto"        # "auto", "cpu", "cuda", "mps"
+seed: 42
+log_level: "INFO"
+
+# ── Embedding Extraction ─────────────────────────────────────
+extraction:
+  model_name: "gpt2"
+  layers: "all"                 # "all" or list of ints e.g. [0, 6, 11]
+  pooling: "mean"               # "mean", "cls", "last", "max"
+  precision: "float32"          # "float32", "float16", "bfloat16"
+  batch_size: 32
+  max_seq_length: 512
+  cache_dir: "data/embeddings"
+
+# ── Riemannian Geometry ──────────────────────────────────────
+riemannian:
+  reduced_dim: 50               # PCA reduction before geometry
+  n_neighbors: 50               # k for local metric estimation
+  regularization: 1.0e-6        # ridge for metric tensor
+  finite_diff_step: 1.0e-3      # h for Christoffel estimation
+  geodesic_dt: 0.01             # RK4 step size
+  geodesic_max_steps: 1000
+
+# ── Topological Data Analysis ────────────────────────────────
+topology:
+  max_dimension: 2              # compute H_0, H_1, H_2
+  max_edge_length: null         # null = auto (95th percentile)
+  max_points: 2000              # subsample if larger
+  backend: "auto"               # "auto", "ripser", "gudhi", "giotto"
+  significance_threshold: "otsu" # "otsu", "percentile_90", "mean_lifetime"
+
+# ── Information Geometry ─────────────────────────────────────
+information:
+  reduced_dim: 50
+  n_mc_samples: 100             # Monte Carlo samples for Fisher
+  top_k_tokens: 100             # restrict vocabulary for tractability
+  perturbation_eps: 1.0e-3
+
+# ── Hallucination Detection ──────────────────────────────────
+hallucination:
+  reference_layer: -2           # second-to-last layer
+  score_weights:
+    curvature: 0.25
+    topological: 0.25
+    information: 0.25
+    density: 0.25
