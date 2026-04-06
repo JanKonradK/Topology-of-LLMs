@@ -31,9 +31,7 @@ class TestFisherInformation:
         result = fisher.estimate_at("Hello world", top_k=50)
 
         eigenvalues = np.linalg.eigvalsh(result.fisher_matrix)
-        assert np.all(eigenvalues >= -1e-6), (
-            f"Negative eigenvalues: {eigenvalues[eigenvalues < 0]}"
-        )
+        assert np.all(eigenvalues >= -1e-6), f"Negative eigenvalues: {eigenvalues[eigenvalues < 0]}"
 
     @pytest.mark.slow
     def test_entropy_nonnegative(self, tiny_model_name: str) -> None:

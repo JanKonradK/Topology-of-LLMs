@@ -54,9 +54,7 @@ class TestKLGeometry:
         from topo_llm.information.divergence import KLGeometry
 
         kl = KLGeometry(tiny_model_name, device="cpu")
-        D = kl.kl_distance_matrix(
-            ["Hello", "World", "Test"], show_progress=False
-        )
+        D = kl.kl_distance_matrix(["Hello", "World", "Test"], show_progress=False)
         np.testing.assert_allclose(D, D.T, atol=0.01)
 
     @pytest.mark.slow
