@@ -20,8 +20,8 @@ LayerAnalyzer
 
 from __future__ import annotations
 
-from topo_llm.extraction.extractor import EmbeddingExtractor
 from topo_llm.extraction.datasets import DatasetGenerator
+from topo_llm.extraction.extractor import EmbeddingExtractor
 from topo_llm.extraction.layers import LayerAnalyzer
 
 __all__ = ["EmbeddingExtractor", "DatasetGenerator", "LayerAnalyzer"]
