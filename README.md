@@ -156,6 +156,52 @@ fig = plot_curvature_field(embeddings_2d, curvatures, title="Scalar Curvature")
 fig.savefig("curvature_field.pdf")
 ```
 
+## CLI Usage
+
+The `topo-llm` command provides four subcommands for end-to-end workflows:
+
+### Extract Embeddings
+
+```bash
+topo-llm extract --model gpt2 --texts data/corpus.txt --output data/embeddings/
+topo-llm extract --model gpt2 --texts data/corpus.txt --layers 0,6,11 --pooling mean --device cpu
+```
+
+Extracts hidden-state embeddings from a HuggingFace model. Each text in the input
+file (one per line) is passed through the model, and per-layer embeddings are saved
+as a compressed `.npz` file.
+
+### Analyze Geometry
+
+```bash
+topo-llm analyze --embeddings data/embeddings/gpt2_embeddings.npz --output results/
+topo-llm analyze --embeddings data/embeddings/gpt2_embeddings.npz --reduced-dim 30 --n-neighbors 20
+```
+
+Computes intrinsic dimensionality, anisotropy, metric tensors, and curvature
+statistics for each layer. Results are saved as `.npz` for downstream use.
+
+### Detect Hallucinations
+
+```bash
+topo-llm detect --model gpt2 --reference data/reference.txt --query "The Eiffel Tower is in Berlin."
+topo-llm detect --model gpt2 --reference data/reference.txt --query "Claim one" "Claim two" --layer -1
+```
+
+Fits a hallucination detector on reference texts, then scores each query with four
+geometric signals (curvature, topological, information, density).
+
+### Generate Figures
+
+```bash
+topo-llm figures --results results/ --output figures/
+```
+
+Reads analysis results and generates publication-quality PDF figures for intrinsic
+dimension profiles, curvature landscapes, and hallucination comparisons.
+
+All subcommands accept `--log-level DEBUG|INFO|WARNING|ERROR` and `--config path/to/config.yaml`.
+
 ## Implementation Status
 
 | Phase | Module | Status | Tests |
@@ -165,10 +211,12 @@ fig.savefig("curvature_field.pdf")
 | 3 | Topological Data Analysis | Complete | 31 tests (27 fast, 4 slow) |
 | 4 | Information Geometry | Complete | 20 tests (all slow) |
 | 5 | Applications | Complete | 8 tests (3 fast, 5 slow) |
-| 6 | Visualization | Complete | — (visual output) |
+| 6 | Visualization | Complete | 21 tests (all slow) |
+| — | Config, Device, Types, CLI | Complete | 50 tests (all fast) |
+| — | Integration (end-to-end) | Complete | 4 tests (all fast) |
 
-**113 fast tests pass** on `pytest -m "not slow"`. Slow tests require model loading
-(`sshleifer/tiny-gpt2`) and optional dependencies (ripser, persim).
+**192+ fast tests pass** on `pytest -m "not slow"`. Slow tests require model loading
+(`sshleifer/tiny-gpt2`) and optional dependencies (ripser, persim, matplotlib).
 
 ## Testing
 
