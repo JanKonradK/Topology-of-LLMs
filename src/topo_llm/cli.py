@@ -72,9 +72,7 @@ def cmd_extract(args: argparse.Namespace) -> None:
         device=args.device,
         pooling=args.pooling,
     )
-    embeddings = extractor.extract_dataset(
-        texts, layers=layers, batch_size=args.batch_size
-    )
+    embeddings = extractor.extract_dataset(texts, layers=layers, batch_size=args.batch_size)
 
     # Save
     output_dir = Path(args.output)
@@ -86,8 +84,11 @@ def cmd_extract(args: argparse.Namespace) -> None:
         **{f"layer_{k}": v for k, v in embeddings.items()},
     )
     logger.info("Saved embeddings to %s", output_path)
-    logger.info("Layers: %s, Shape per layer: %s", list(embeddings.keys()),
-                next(iter(embeddings.values())).shape)
+    logger.info(
+        "Layers: %s, Shape per layer: %s",
+        list(embeddings.keys()),
+        next(iter(embeddings.values())).shape,
+    )
 
 
 def cmd_analyze(args: argparse.Namespace) -> None:
@@ -148,16 +149,17 @@ def cmd_analyze(args: argparse.Namespace) -> None:
 
         logger.info(
             "  intrinsic_dim=%.1f, curvature_mean=%.4f ± %.4f",
-            intrinsic_dim, stats["scalar_mean"], stats["scalar_std"],
+            intrinsic_dim,
+            stats["scalar_mean"],
+            stats["scalar_std"],
         )
 
     # Save results
     results_path = output_dir / "analysis_results.npz"
-    np.savez(results_path, **{
-        f"{k}_{metric}": v
-        for k, metrics in results.items()
-        for metric, v in metrics.items()
-    })
+    np.savez(
+        results_path,
+        **{f"{k}_{metric}": v for k, metrics in results.items() for metric, v in metrics.items()},
+    )
     logger.info("Saved analysis results to %s", results_path)
 
 
@@ -266,11 +268,15 @@ def build_parser() -> argparse.ArgumentParser:
         description="Geometry and Topology of LLM Representation Spaces",
     )
     parser.add_argument("--version", action="version", version=f"topo-llm {__version__}")
-    parser.add_argument("--log-level", default="INFO",
-                        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-                        help="Logging level (default: INFO)")
-    parser.add_argument("--config", default=None,
-                        help="Path to YAML config file (default: config/default.yaml)")
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Logging level (default: INFO)",
+    )
+    parser.add_argument(
+        "--config", default=None, help="Path to YAML config file (default: config/default.yaml)"
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -280,8 +286,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_extract.add_argument("--texts", required=True, help="Path to text file (one text per line)")
     p_extract.add_argument("--output", default="data/embeddings", help="Output directory")
     p_extract.add_argument("--layers", default="all", help="Comma-separated layer indices or 'all'")
-    p_extract.add_argument("--pooling", default="mean",
-                           choices=["mean", "cls", "last", "max"], help="Pooling strategy")
+    p_extract.add_argument(
+        "--pooling", default="mean", choices=["mean", "cls", "last", "max"], help="Pooling strategy"
+    )
     p_extract.add_argument("--batch-size", type=int, default=32, help="Batch size")
     p_extract.add_argument("--device", default="auto", help="Device: auto, cpu, cuda, mps")
 
@@ -289,10 +296,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_analyze = subparsers.add_parser("analyze", help="Analyze embeddings (geometry + topology)")
     p_analyze.add_argument("--embeddings", required=True, help="Path to .npz embeddings file")
     p_analyze.add_argument("--output", default="data/results", help="Output directory")
-    p_analyze.add_argument("--reduced-dim", type=int, default=50,
-                           help="PCA dimensions for Riemannian analysis (default: 50)")
-    p_analyze.add_argument("--n-neighbors", type=int, default=15,
-                           help="k-NN neighbors for metric estimation (default: 15)")
+    p_analyze.add_argument(
+        "--reduced-dim",
+        type=int,
+        default=50,
+        help="PCA dimensions for Riemannian analysis (default: 50)",
+    )
+    p_analyze.add_argument(
+        "--n-neighbors",
+        type=int,
+        default=15,
+        help="k-NN neighbors for metric estimation (default: 15)",
+    )
 
     # ── detect ───────────────────────────────────────────────
     p_detect = subparsers.add_parser("detect", help="Score texts for hallucination risk")
