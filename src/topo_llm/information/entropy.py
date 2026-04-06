@@ -17,11 +17,10 @@ logger = logging.getLogger(__name__)
 def _require_torch():
     try:
         import torch
+
         return torch
     except ImportError:
-        raise ImportError(
-            "PyTorch required. Install with: pip install topo-llm[torch]"
-        )
+        raise ImportError("PyTorch required. Install with: pip install topo-llm[torch]") from None
 
 
 class EntropySurface:
@@ -45,13 +44,16 @@ class EntropySurface:
         self,
         model_name: str,
         device: str = "auto",
+        seed: int = 42,
     ) -> None:
-        torch = _require_torch()
+        _require_torch()
         import transformers
+
         from topo_llm.device import get_device
 
         self.model_name = model_name
         self._device = get_device(device)
+        self._rng_seed = seed
 
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
         if self.tokenizer.pad_token is None:
@@ -110,6 +112,7 @@ class EntropySurface:
         """
         if show_progress:
             from tqdm import tqdm
+
             iterator = tqdm(prompts, desc="Entropy map", unit="prompt")
         else:
             iterator = prompts
@@ -164,7 +167,7 @@ class EntropySurface:
         H_base = self.compute_entropy(prompt)
 
         # Random directions and finite differences
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng(self._rng_seed)
         directions = rng.standard_normal((n_directions, hidden_dim))
         directions /= np.linalg.norm(directions, axis=1, keepdims=True)
 
