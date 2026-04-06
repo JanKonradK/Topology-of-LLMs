@@ -18,12 +18,12 @@ logger = logging.getLogger(__name__)
 def _require_persim():
     try:
         import persim
+
         return persim
     except ImportError:
         raise ImportError(
-            "persim is required for diagram distances. "
-            "Install with: pip install topo-llm[tda]"
-        )
+            "persim is required for diagram distances. Install with: pip install topo-llm[tda]"
+        ) from None
 
 
 class DiagramDistances:
