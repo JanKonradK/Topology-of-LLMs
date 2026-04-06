@@ -16,8 +16,8 @@ import logging
 import numpy as np
 from scipy.optimize import minimize
 
-from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.riemannian.connection import ChristoffelEstimator
+from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.types import GeodesicResult
 
 logger = logging.getLogger(__name__)
@@ -50,11 +50,13 @@ class GeodesicSolver:
         christoffel_estimator: ChristoffelEstimator,
         dt: float = 0.01,
         max_steps: int = 1000,
+        seed: int = 42,
     ) -> None:
         self.metric = metric_estimator
         self.christoffel = christoffel_estimator
         self.dt = dt
         self.max_steps = max_steps
+        self._rng_seed = seed
 
     def _geodesic_acceleration(
         self,
@@ -111,14 +113,18 @@ class GeodesicSolver:
         GeodesicResult
             Contains the path in both tangent and ambient coordinates,
             velocities, arc length, and step count.
+
+        Notes
+        -----
+        Complexity is O(max_steps * d^2) where d is the intrinsic
+        dimensionality, due to Christoffel symbol interpolation at each
+        RK4 step.
         """
         m = self.metric.intrinsic_dim_
-        D = self.metric.point_cloud_.shape[1]
         dt = self.dt
 
         # Starting position and velocity
         x_ambient = self.metric.point_cloud_[start_idx].copy()
-        T_start = self.metric.tangent_bases_[start_idx]
 
         v = initial_velocity.copy()
 
@@ -302,7 +308,7 @@ class GeodesicSolver:
             Approximate geodesic distance.
         """
         m = self.metric.intrinsic_dim_
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng(self._rng_seed)
 
         x_a = self.metric.point_cloud_[idx_a]
         x_b = self.metric.point_cloud_[idx_b]
@@ -368,6 +374,7 @@ class GeodesicSolver:
 
         if show_progress:
             from tqdm import tqdm
+
             pbar = tqdm(total=total_pairs, desc="Geodesic distances", unit="pair")
         else:
             pbar = None
