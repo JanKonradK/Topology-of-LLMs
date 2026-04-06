@@ -7,10 +7,9 @@ without requiring a real LLM.
 
 from __future__ import annotations
 
-import numpy as np
 import pytest
 
-from topo_llm.types import HallucinationScore, EvaluationResult
+from topo_llm.types import EvaluationResult, HallucinationScore
 
 
 class TestHallucinationScore:
