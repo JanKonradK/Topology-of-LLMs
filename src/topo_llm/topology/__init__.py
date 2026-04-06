@@ -26,11 +26,11 @@ TopologicalFeatures
 
 from __future__ import annotations
 
+from topo_llm.topology.distances import DiagramDistances
+from topo_llm.topology.features import TopologicalFeatures
 from topo_llm.topology.filtration import FiltrationBuilder
 from topo_llm.topology.homology import PersistentHomologyAnalyzer
 from topo_llm.topology.landscapes import PersistenceLandscape
-from topo_llm.topology.distances import DiagramDistances
-from topo_llm.topology.features import TopologicalFeatures
 
 __all__ = [
     "FiltrationBuilder",

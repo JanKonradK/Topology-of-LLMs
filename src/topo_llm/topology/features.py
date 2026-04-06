@@ -65,18 +65,20 @@ class TopologicalFeatures:
                 deaths = dgm[:, 1]
                 lifetimes = deaths - births
 
-                features.extend([
-                    float(len(dgm)),                    # n_features
-                    float(births.mean()),                # mean_birth
-                    float(births.std()),                 # std_birth
-                    float(deaths.mean()),                # mean_death
-                    float(deaths.std()),                 # std_death
-                    float(lifetimes.mean()),             # mean_lifetime
-                    float(lifetimes.std()),              # std_lifetime
-                    float(lifetimes.max()),              # max_lifetime
-                    analyzer.persistence_entropy(k),     # entropy
-                    float(len(analyzer.significant_features(k))),  # n_significant
-                ])
+                features.extend(
+                    [
+                        float(len(dgm)),  # n_features
+                        float(births.mean()),  # mean_birth
+                        float(births.std()),  # std_birth
+                        float(deaths.mean()),  # mean_death
+                        float(deaths.std()),  # std_death
+                        float(lifetimes.mean()),  # mean_lifetime
+                        float(lifetimes.std()),  # std_lifetime
+                        float(lifetimes.max()),  # max_lifetime
+                        analyzer.persistence_entropy(k),  # entropy
+                        float(len(analyzer.significant_features(k))),  # n_significant
+                    ]
+                )
             else:
                 features.extend([0.0] * 10)
 
@@ -132,7 +134,7 @@ class TopologicalFeatures:
         if weight_fn == "linear":
             weights = persistences
         elif weight_fn == "persistence":
-            weights = persistences ** 2
+            weights = persistences**2
         else:
             raise ValueError(f"Unknown weight function: {weight_fn!r}")
 
@@ -153,7 +155,7 @@ class TopologicalFeatures:
         # Compute image
         image = np.zeros(resolution)
         for b, p, w in zip(births, persistences, weights):
-            gaussian = np.exp(-((B - b) ** 2 + (P - p) ** 2) / (2 * sigma ** 2))
+            gaussian = np.exp(-((B - b) ** 2 + (P - p) ** 2) / (2 * sigma**2))
             image += w * gaussian
 
         return image
@@ -201,11 +203,15 @@ class TopologicalFeatures:
                 )
                 # Add integrals and norms for each landscape
                 for i in range(3):
-                    parts.append(np.array([
-                        landscape.integrate(i),
-                        landscape.norm(i, p=1.0),
-                        landscape.norm(i, p=2.0),
-                    ]))
+                    parts.append(
+                        np.array(
+                            [
+                                landscape.integrate(i),
+                                landscape.norm(i, p=1.0),
+                                landscape.norm(i, p=2.0),
+                            ]
+                        )
+                    )
 
         if include_images:
             for k in range(min(3, len(diagrams))):
