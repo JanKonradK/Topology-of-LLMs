@@ -13,8 +13,10 @@ from typing import Literal
 
 import numpy as np
 from scipy.spatial import KDTree
-from sklearn.decomposition import PCA
 from sklearn.cross_decomposition import CCA
+from sklearn.decomposition import PCA
+
+from topo_llm.types import AnisotropyResult
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +116,6 @@ class LayerAnalyzer:
         mu_i = r_2(x_i) / r_1(x_i)
         d = N / sum_i log(mu_i)
         """
-        n_samples = embeddings.shape[0]
         tree = KDTree(embeddings)
         distances, _ = tree.query(embeddings, k=3)  # self + 2 neighbors
         r1 = distances[:, 1]  # nearest neighbor
@@ -177,13 +178,9 @@ class LayerAnalyzer:
         if method == "cka":
             return LayerAnalyzer._cka(embeddings_layer_i, embeddings_layer_j)
         elif method == "procrustes":
-            return LayerAnalyzer._procrustes_similarity(
-                embeddings_layer_i, embeddings_layer_j
-            )
+            return LayerAnalyzer._procrustes_similarity(embeddings_layer_i, embeddings_layer_j)
         elif method == "cca":
-            return LayerAnalyzer._cca_similarity(
-                embeddings_layer_i, embeddings_layer_j
-            )
+            return LayerAnalyzer._cca_similarity(embeddings_layer_i, embeddings_layer_j)
         else:
             raise ValueError(f"Unknown method: {method!r}")
 
@@ -268,21 +265,20 @@ class LayerAnalyzer:
             X_c, Y_c = cca.transform(X_r, Y_r)
 
             # Canonical correlations
-            correlations = np.array([
-                np.corrcoef(X_c[:, i], Y_c[:, i])[0, 1]
-                for i in range(n_components)
-            ])
+            correlations = np.array(
+                [np.corrcoef(X_c[:, i], Y_c[:, i])[0, 1] for i in range(n_components)]
+            )
             # Filter NaN
             valid = np.isfinite(correlations)
             if valid.sum() == 0:
                 return 0.0
             return float(np.abs(correlations[valid]).mean())
-        except Exception:
+        except (ValueError, np.linalg.LinAlgError):
             logger.warning("CCA failed, returning 0.0")
             return 0.0
 
     @staticmethod
-    def compute_anisotropy(embeddings: np.ndarray) -> dict[str, object]:
+    def compute_anisotropy(embeddings: np.ndarray, seed: int = 42) -> AnisotropyResult:
         """Measure how non-uniform (anisotropic) the embedding space is.
 
         Parameters
@@ -292,7 +288,7 @@ class LayerAnalyzer:
 
         Returns
         -------
-        dict[str, object]
+        AnisotropyResult
             Dictionary with:
 
             - ``"mean_cosine"`` (float): Average cosine similarity between
@@ -311,7 +307,7 @@ class LayerAnalyzer:
         # ── Mean cosine similarity ────────────────────────────
         # Sample random pairs for efficiency
         n_pairs = min(5000, n * (n - 1) // 2)
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng(seed)
         idx_a = rng.integers(0, n, size=n_pairs)
         idx_b = rng.integers(0, n, size=n_pairs)
         # Avoid self-pairs
