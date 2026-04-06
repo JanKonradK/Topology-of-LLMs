@@ -7,8 +7,12 @@ Plot persistence diagrams, barcodes, landscapes, and Betti curves.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +20,10 @@ logger = logging.getLogger(__name__)
 def _require_matplotlib():
     try:
         import matplotlib.pyplot as plt
+
         return plt
     except ImportError:
-        raise ImportError("matplotlib required. Install with: pip install topo-llm[viz]")
+        raise ImportError("matplotlib required. Install with: pip install topo-llm[viz]") from None
 
 
 def plot_persistence_diagram(
@@ -26,7 +31,7 @@ def plot_persistence_diagram(
     title: str = "Persistence Diagram",
     max_dimension: int = 2,
     figsize: tuple[int, int] = (8, 8),
-) -> object:
+) -> Figure:
     """Plot persistence diagram (birth vs death).
 
     Parameters
@@ -57,9 +62,14 @@ def plot_persistence_diagram(
         dgm = diagrams[k]
         if len(dgm) > 0:
             ax.scatter(
-                dgm[:, 0], dgm[:, 1],
-                c=colors[k % len(colors)], label=labels[k],
-                s=30, alpha=0.7, edgecolors="black", linewidths=0.5,
+                dgm[:, 0],
+                dgm[:, 1],
+                c=colors[k % len(colors)],
+                label=labels[k],
+                s=30,
+                alpha=0.7,
+                edgecolors="black",
+                linewidths=0.5,
             )
             all_vals.extend(dgm.ravel().tolist())
 
@@ -82,7 +92,7 @@ def plot_barcode(
     title: str = "Persistence Barcode",
     max_dimension: int = 2,
     figsize: tuple[int, int] = (10, 6),
-) -> object:
+) -> Figure:
     """Plot persistence barcode (horizontal bars for each feature).
 
     Parameters
@@ -120,9 +130,14 @@ def plot_barcode(
         for i, idx in enumerate(order):
             b, d = dgm[idx]
             ax.barh(
-                y_offset + i, d - b, left=b,
-                height=0.8, color=colors[k % len(colors)],
-                alpha=0.7, edgecolor="black", linewidth=0.5,
+                y_offset + i,
+                d - b,
+                left=b,
+                height=0.8,
+                color=colors[k % len(colors)],
+                alpha=0.7,
+                edgecolor="black",
+                linewidth=0.5,
             )
 
         # Add dimension label
@@ -142,7 +157,7 @@ def plot_betti_curve(
     betti_curves: dict[int, tuple[np.ndarray, np.ndarray]],
     title: str = "Betti Curves",
     figsize: tuple[int, int] = (10, 5),
-) -> object:
+) -> Figure:
     """Plot Betti numbers as a function of scale.
 
     Parameters
@@ -182,7 +197,7 @@ def plot_persistence_landscape(
     landscapes: np.ndarray,
     title: str = "Persistence Landscapes",
     figsize: tuple[int, int] = (10, 5),
-) -> object:
+) -> Figure:
     """Plot persistence landscape functions.
 
     Parameters
@@ -207,7 +222,7 @@ def plot_persistence_landscape(
 
     n_k = min(5, landscapes.shape[0])
     for k in range(n_k):
-        ax.fill_between(grid, 0, landscapes[k], alpha=0.3, label=f"$\\lambda_{k+1}$")
+        ax.fill_between(grid, 0, landscapes[k], alpha=0.3, label=f"$\\lambda_{k + 1}$")
         ax.plot(grid, landscapes[k], linewidth=1)
 
     ax.set_xlabel("$t$")
