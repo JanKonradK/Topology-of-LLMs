@@ -11,11 +11,11 @@ from __future__ import annotations
 import logging
 
 import numpy as np
-from scipy.spatial import KDTree
 from scipy.stats import kendalltau
 
-from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.riemannian.geodesic import GeodesicSolver
+from topo_llm.riemannian.metric import MetricTensorEstimator
+from topo_llm.types import ComparisonResult
 
 logger = logging.getLogger(__name__)
 
@@ -117,9 +117,7 @@ class RiemannianSearch:
             List of ``(index, euclidean_distance)`` pairs.
         """
         tree = self.metric.nn_tree_
-        distances, indices = tree.query(
-            self.metric.point_cloud_[query_idx], k=k + 1
-        )
+        distances, indices = tree.query(self.metric.point_cloud_[query_idx], k=k + 1)
 
         result = []
         for d, idx in zip(distances, indices):
@@ -172,7 +170,7 @@ class RiemannianSearch:
         query_idx: int,
         k: int = 10,
         candidates: int = 50,
-    ) -> dict[str, object]:
+    ) -> ComparisonResult:
         """Compare nearest neighbors under different distance metrics.
 
         Parameters
@@ -186,7 +184,7 @@ class RiemannianSearch:
 
         Returns
         -------
-        dict[str, object]
+        ComparisonResult
             Dictionary with:
 
             - ``"euclidean_neighbors"``: list of neighbor indices
@@ -203,10 +201,8 @@ class RiemannianSearch:
         cosine_idx = [idx for idx, _ in cosine]
         geo_idx = [idx for idx, _ in geodesic]
 
-        # Compute rank correlations on the intersection
+        # Compute rank correlations
         # For Kendall tau, we need shared elements ranked
-        all_idx = list(set(euclid_idx) | set(cosine_idx) | set(geo_idx))
-
         def rank_map(neighbors: list[int]) -> dict[int, int]:
             return {idx: rank for rank, idx in enumerate(neighbors)}
 
