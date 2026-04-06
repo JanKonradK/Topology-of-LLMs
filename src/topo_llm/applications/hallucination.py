@@ -17,9 +17,9 @@ import logging
 
 import numpy as np
 from scipy.spatial import KDTree
-from sklearn.metrics import roc_auc_score, average_precision_score, f1_score
+from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
 
-from topo_llm.types import HallucinationScore, EvaluationResult
+from topo_llm.types import EvaluationResult, HallucinationScore
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,11 @@ class HallucinationDetector:
         self,
         model_name: str = "gpt2-medium",
         device: str = "auto",
+        seed: int = 42,
     ) -> None:
         self.model_name = model_name
         self.device = device
+        self._rng_seed = seed
 
         # Fitted state
         self._fitted = False
@@ -64,6 +66,18 @@ class HallucinationDetector:
         self._scalar_curvatures: np.ndarray | None = None
         self._volume_elements: np.ndarray | None = None
 
+        # Information geometry components (initialized during fit)
+        self._fisher_estimator = None
+        self._entropy_surface = None
+        self._kl_geometry = None
+        self._fisher_mean: float = 0.0
+        self._fisher_std: float = 1.0
+        self._grad_mean: float = 0.0
+        self._grad_std: float = 1.0
+        self._jsd_mean: float = 0.0
+        self._jsd_std: float = 1.0
+        self._info_geometry_fitted: bool = False
+
         # Score weights
         self._weights = {
             "curvature": 0.25,
@@ -76,9 +90,8 @@ class HallucinationDetector:
         """Lazily load the embedding extractor."""
         if self._extractor is None:
             from topo_llm.extraction.extractor import EmbeddingExtractor
-            self._extractor = EmbeddingExtractor(
-                self.model_name, device=self.device
-            )
+
+            self._extractor = EmbeddingExtractor(self.model_name, device=self.device)
 
     def fit(
         self,
@@ -87,6 +100,7 @@ class HallucinationDetector:
         layer: int = -2,
         n_neighbors: int = 30,
         reduced_dim: int = 50,
+        skip_information: bool = False,
     ) -> HallucinationDetector:
         """Fit the detector on a reference corpus.
 
@@ -158,21 +172,22 @@ class HallucinationDetector:
         from topo_llm.riemannian.curvature import CurvatureAnalyzer
 
         christoffel = ChristoffelEstimator(self._metric_estimator, h=1e-3)
-        self._curvature_analyzer = CurvatureAnalyzer(
-            self._metric_estimator, christoffel
-        )
+        self._curvature_analyzer = CurvatureAnalyzer(self._metric_estimator, christoffel)
 
         # Compute curvatures for a subset (for statistics)
         n_curv = min(100, len(reference_corpus))
-        curv_indices = np.random.default_rng(42).choice(
+        curv_indices = np.random.default_rng(self._rng_seed).choice(
             len(reference_corpus), n_curv, replace=False
         )
-        curvatures = np.array([
-            self._curvature_analyzer.scalar_curvature_at(int(i))
-            for i in curv_indices
-        ])
+        curvatures = np.array(
+            [self._curvature_analyzer.scalar_curvature_at(int(i)) for i in curv_indices]
+        )
         self._curv_mean = float(np.mean(curvatures))
         self._curv_std = float(np.std(curvatures)) + 1e-8
+
+        # Fit information geometry components
+        if not skip_information:
+            self._fit_information_geometry(reference_corpus)
 
         # Learn weights if labels provided
         if labels is not None:
@@ -181,6 +196,88 @@ class HallucinationDetector:
         self._fitted = True
         logger.info("HallucinationDetector fitted on %d reference texts", len(reference_corpus))
         return self
+
+    def _fit_information_geometry(self, reference_corpus: list[str]) -> None:
+        """Compute reference statistics for information geometry scoring.
+
+        Computes Fisher traces, entropy gradients, and pairwise JSD
+        on a subsample of the reference corpus for normalization.
+        """
+        rng = np.random.default_rng(self._rng_seed)
+        n_ref = len(reference_corpus)
+
+        # Fisher trace statistics
+        try:
+            from topo_llm.information.fisher import FisherInformationEstimator
+
+            logger.info("Computing Fisher information on reference corpus...")
+            self._fisher_estimator = FisherInformationEstimator(
+                self.model_name, device=self.device, seed=self._rng_seed
+            )
+            n_fisher = min(50, n_ref)
+            fisher_idx = rng.choice(n_ref, n_fisher, replace=False)
+            fisher_traces = []
+            for i in fisher_idx:
+                result = self._fisher_estimator.estimate_at(reference_corpus[int(i)], top_k=100)
+                fisher_traces.append(result.fisher_trace)
+
+            fisher_traces = np.array(fisher_traces)
+            self._fisher_mean = float(np.mean(fisher_traces))
+            self._fisher_std = float(np.std(fisher_traces)) + 1e-8
+        except (ImportError, RuntimeError, AttributeError, ValueError):
+            logger.warning("Fisher information fitting failed; falling back to entropy-only")
+
+        # Entropy gradient statistics
+        try:
+            from topo_llm.information.entropy import EntropySurface
+
+            logger.info("Computing entropy gradients on reference corpus...")
+            self._entropy_surface = EntropySurface(
+                self.model_name, device=self.device, seed=self._rng_seed
+            )
+            n_grad = min(30, n_ref)
+            grad_idx = rng.choice(n_ref, n_grad, replace=False)
+            grad_magnitudes = []
+            for i in grad_idx:
+                grad = self._entropy_surface.entropy_gradient(
+                    reference_corpus[int(i)], n_directions=30
+                )
+                grad_magnitudes.append(float(np.linalg.norm(grad)))
+
+            grad_magnitudes = np.array(grad_magnitudes)
+            self._grad_mean = float(np.mean(grad_magnitudes))
+            self._grad_std = float(np.std(grad_magnitudes)) + 1e-8
+        except (ImportError, RuntimeError, AttributeError, ValueError):
+            logger.warning("Entropy gradient fitting failed; falling back to entropy-only")
+
+        # Pairwise JSD statistics
+        try:
+            from topo_llm.information.divergence import KLGeometry
+
+            logger.info("Computing pairwise JSD on reference corpus...")
+            self._kl_geometry = KLGeometry(self.model_name, device=self.device)
+            n_jsd = min(30, n_ref)
+            jsd_idx = rng.choice(n_ref, n_jsd, replace=False)
+            jsd_dists = []
+            for j in range(len(jsd_idx) - 1):
+                d = self._kl_geometry.symmetric_kl(
+                    reference_corpus[int(jsd_idx[j])],
+                    reference_corpus[int(jsd_idx[j + 1])],
+                    top_k=1000,
+                )
+                jsd_dists.append(d)
+
+            jsd_dists = np.array(jsd_dists)
+            self._jsd_mean = float(np.mean(jsd_dists))
+            self._jsd_std = float(np.std(jsd_dists)) + 1e-8
+        except (ImportError, RuntimeError, AttributeError, ValueError):
+            logger.warning("KL divergence fitting failed; falling back to entropy-only")
+
+        self._info_geometry_fitted = (
+            self._fisher_estimator is not None
+            and self._entropy_surface is not None
+            and self._kl_geometry is not None
+        )
 
     def _learn_weights(self, labels: list[bool]) -> None:
         """Learn optimal score weights from labeled data."""
@@ -191,7 +288,8 @@ class HallucinationDetector:
             c = self._curvature_score_from_embedding(emb, i)
             t = self._topological_score_from_embedding(emb)
             d = self._density_score_from_embedding(emb)
-            scores.append([c, t, 0.5, d])  # placeholder for info score
+            info = self._information_score(self._reference_texts[i])
+            scores.append([c, t, info, d])
 
         scores = np.array(scores)
         labels_arr = np.array(labels, dtype=float)
@@ -221,14 +319,14 @@ class HallucinationDetector:
         if idx is not None:
             try:
                 S = self._curvature_analyzer.scalar_curvature_at(idx)
-            except Exception:
+            except (IndexError, ValueError, np.linalg.LinAlgError):
                 return 0.5
         else:
             # For new points, use nearest reference curvature
             _, nearest = self._reference_tree.query(embedding, k=1)
             try:
                 S = self._curvature_analyzer.scalar_curvature_at(int(nearest))
-            except Exception:
+            except (IndexError, ValueError, np.linalg.LinAlgError):
                 return 0.5
 
         # Anomaly: how far from mean curvature
@@ -245,11 +343,14 @@ class HallucinationDetector:
         mean_dist = float(dist.mean())
 
         # Normalize by median reference pairwise distance
-        sample_idx = np.random.default_rng(42).choice(
-            len(self._reference_embeddings), min(100, len(self._reference_embeddings)), replace=False
+        sample_idx = np.random.default_rng(self._rng_seed).choice(
+            len(self._reference_embeddings),
+            min(100, len(self._reference_embeddings)),
+            replace=False,
         )
         sample = self._reference_embeddings[sample_idx]
         from scipy.spatial.distance import pdist
+
         median_dist = float(np.median(pdist(sample)))
 
         if median_dist < 1e-8:
@@ -279,7 +380,7 @@ class HallucinationDetector:
 
         # Density ∝ k / (vol * r_k^d)
         d = self._metric_estimator.intrinsic_dim_
-        density = k / (vol * r_k ** d + 1e-10)
+        density = k / (vol * r_k**d + 1e-10)
 
         # Convert to score: low density → high score
         # Use log scale and sigmoid
@@ -288,7 +389,7 @@ class HallucinationDetector:
         # Compute reference density statistics for normalization
         ref_densities = []
         n_sample = min(50, len(self._reference_embeddings))
-        sample_idx = np.random.default_rng(42).choice(
+        sample_idx = np.random.default_rng(self._rng_seed).choice(
             len(self._reference_embeddings), n_sample, replace=False
         )
         for idx in sample_idx:
@@ -297,13 +398,82 @@ class HallucinationDetector:
                 d_ref = np.array([d_ref])
             r_ref = d_ref[-1]
             v_ref = self._metric_estimator.volume_element(int(idx))
-            ref_densities.append(k / (max(v_ref, 1e-10) * r_ref ** d + 1e-10))
+            ref_densities.append(k / (max(v_ref, 1e-10) * r_ref**d + 1e-10))
 
         ref_log = np.log(np.array(ref_densities) + 1e-10)
         z = (log_density - ref_log.mean()) / (ref_log.std() + 1e-8)
 
         # Sigmoid: low density (negative z) → high score
         return float(1.0 / (1.0 + np.exp(z)))
+
+    def _information_score(self, text: str) -> float:
+        """Information geometry score combining Fisher, entropy gradient, and JSD.
+
+        When full information geometry is fitted, combines three signals:
+        1. Fisher trace anomaly — deviation from reference Fisher trace distribution
+        2. Entropy gradient magnitude — sensitivity of model certainty to perturbations
+        3. JSD from nearest reference — distributional divergence from reference texts
+
+        Falls back to normalized entropy when information geometry is unavailable.
+        """
+        if not self._info_geometry_fitted:
+            # Fallback: entropy-only score
+            try:
+                from topo_llm.information.entropy import EntropySurface
+
+                surface = self._entropy_surface or EntropySurface(
+                    self.model_name, device=self.device, seed=self._rng_seed
+                )
+                H = surface.compute_entropy(text)
+                vocab_size = self._extractor.model.config.vocab_size
+                return float(min(H / np.log(vocab_size), 1.0))
+            except (ImportError, RuntimeError, AttributeError, ValueError):
+                return 0.5
+
+        scores = []
+        weights = []
+
+        # 1. Fisher trace anomaly
+        try:
+            fisher_result = self._fisher_estimator.estimate_at(text, top_k=100)
+            anomaly = abs(fisher_result.fisher_trace - self._fisher_mean) / self._fisher_std
+            fisher_score = float(1.0 / (1.0 + np.exp(-anomaly + 1.5)))
+            scores.append(fisher_score)
+            weights.append(0.5)
+        except (RuntimeError, ValueError, np.linalg.LinAlgError):
+            pass
+
+        # 2. Entropy gradient magnitude
+        try:
+            gradient = self._entropy_surface.entropy_gradient(text, n_directions=30)
+            grad_mag = float(np.linalg.norm(gradient))
+            grad_anomaly = (grad_mag - self._grad_mean) / self._grad_std
+            gradient_score = float(1.0 / (1.0 + np.exp(-grad_anomaly + 1.5)))
+            scores.append(gradient_score)
+            weights.append(0.3)
+        except (RuntimeError, ValueError, np.linalg.LinAlgError):
+            pass
+
+        # 3. JSD from nearest reference
+        try:
+            embedding = self._embed_and_reduce(text)
+            _, nearest_idx = self._reference_tree.query(embedding, k=1)
+            nearest_text = self._reference_texts[int(nearest_idx)]
+            jsd = self._kl_geometry.symmetric_kl(text, nearest_text, top_k=1000)
+            jsd_anomaly = (jsd - self._jsd_mean) / self._jsd_std
+            divergence_score = float(1.0 / (1.0 + np.exp(-jsd_anomaly + 1.5)))
+            scores.append(divergence_score)
+            weights.append(0.2)
+        except (RuntimeError, ValueError, np.linalg.LinAlgError):
+            pass
+
+        if not scores:
+            return 0.5
+
+        # Weighted combination
+        weights = np.array(weights)
+        weights /= weights.sum()
+        return float(np.clip(np.dot(scores, weights), 0, 1))
 
     def score(self, text: str) -> HallucinationScore:
         """Compute hallucination score for a single text.
@@ -320,6 +490,8 @@ class HallucinationDetector:
         """
         if not self._fitted:
             raise RuntimeError("Detector must be fitted before scoring")
+        if not text or not text.strip():
+            raise ValueError("text must be a non-empty string")
 
         embedding = self._embed_and_reduce(text)
 
@@ -328,17 +500,8 @@ class HallucinationDetector:
         topo_score = self._topological_score_from_embedding(embedding)
         density_score = self._density_score_from_embedding(embedding)
 
-        # Information score (simplified: use entropy as proxy)
-        try:
-            from topo_llm.information.entropy import EntropySurface
-            surface = EntropySurface(self.model_name, device=self.device)
-            H = surface.compute_entropy(text)
-            # Low entropy = confident = low risk; high entropy = uncertain = high risk
-            # Normalize by log(vocab_size)
-            vocab_size = self._extractor.model.config.vocab_size
-            info_score = float(min(H / np.log(vocab_size), 1.0))
-        except Exception:
-            info_score = 0.5
+        # Information geometry score
+        info_score = self._information_score(text)
 
         # Combined score
         combined = (
@@ -374,7 +537,7 @@ class HallucinationDetector:
         texts: list[str],
         labels: list[bool],
         baselines: bool = True,
-    ) -> dict[str, object]:
+    ) -> dict[str, EvaluationResult | dict[str, EvaluationResult]]:
         """Full evaluation against labeled data.
 
         Parameters
@@ -388,8 +551,8 @@ class HallucinationDetector:
 
         Returns
         -------
-        dict
-            Evaluation metrics for our method and baselines.
+        dict[str, EvaluationResult | dict[str, EvaluationResult]]
+            Evaluation metrics for our method, ablation, and baselines.
         """
         if not self._fitted:
             raise RuntimeError("Detector must be fitted before evaluation")
@@ -434,11 +597,9 @@ class HallucinationDetector:
                     best_f1 = f1
                     best_thresh = thresh
 
-            return EvaluationResult(
-                auroc=auroc, auprc=auprc, f1=best_f1, threshold=best_thresh
-            )
+            return EvaluationResult(auroc=auroc, auprc=auprc, f1=best_f1, threshold=best_thresh)
 
-        result: dict[str, object] = {
+        result: dict[str, EvaluationResult | dict[str, EvaluationResult]] = {
             "ours": compute_metrics(scores, labels_arr),
         }
 
@@ -467,8 +628,6 @@ class HallucinationDetector:
                 sims = (self._reference_embeddings @ emb) / (norms_ref * norm_q + 1e-10)
                 cosine_scores.append(1.0 - sims.max())
 
-            result["cosine_baseline"] = compute_metrics(
-                np.array(cosine_scores), labels_arr
-            )
+            result["cosine_baseline"] = compute_metrics(np.array(cosine_scores), labels_arr)
 
         return result
