@@ -11,7 +11,7 @@ import logging
 import time
 
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist
 
 from topo_llm.types import PersistenceResult
 
@@ -21,23 +21,25 @@ logger = logging.getLogger(__name__)
 def _require_ripser():
     try:
         import ripser
+
         return ripser
     except ImportError:
         raise ImportError(
             "ripser is required for Vietoris-Rips filtration. "
             "Install with: pip install topo-llm[tda]"
-        )
+        ) from None
 
 
 def _require_gudhi():
     try:
         import gudhi
+
         return gudhi
     except ImportError:
         raise ImportError(
             "GUDHI is required for Alpha complex filtration. "
             "Install with: pip install topo-llm[tda]"
-        )
+        ) from None
 
 
 class FiltrationBuilder:
@@ -58,6 +60,7 @@ class FiltrationBuilder:
         max_dimension: int = 2,
         max_edge_length: float | None = None,
         n_points: int | None = None,
+        seed: int = 42,
     ) -> PersistenceResult:
         """Build Vietoris-Rips filtration and compute persistent homology.
 
@@ -81,27 +84,32 @@ class FiltrationBuilder:
         """
         ripser = _require_ripser()
 
+        if point_cloud.ndim != 2:
+            raise ValueError(f"point_cloud must be 2D (N, D), got shape {point_cloud.shape}")
+        if point_cloud.shape[0] == 0:
+            raise ValueError("point_cloud must not be empty")
+
         N = point_cloud.shape[0]
 
         # Subsample if needed
         if n_points is not None and n_points < N:
-            point_cloud, _ = FiltrationBuilder.maxmin_subsample(
-                point_cloud, n_points
-            )
+            point_cloud, _ = FiltrationBuilder.maxmin_subsample(point_cloud, n_points)
             N = n_points
 
         # Auto max_edge_length
         if max_edge_length is None:
             # Use a subset for efficiency
             n_sample = min(500, N)
-            rng = np.random.default_rng(42)
+            rng = np.random.default_rng(seed)
             idx = rng.choice(N, size=n_sample, replace=False)
             sample_dists = pdist(point_cloud[idx])
             max_edge_length = float(np.percentile(sample_dists, 95))
 
         logger.info(
             "Computing Vietoris-Rips: N=%d, max_dim=%d, max_edge=%.3f",
-            N, max_dimension, max_edge_length,
+            N,
+            max_dimension,
+            max_edge_length,
         )
 
         t0 = time.time()
@@ -193,6 +201,7 @@ class FiltrationBuilder:
     def maxmin_subsample(
         point_cloud: np.ndarray,
         n_points: int,
+        seed: int = 42,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Furthest point sampling (maxmin / greedy).
 
@@ -217,7 +226,7 @@ class FiltrationBuilder:
         n_points = min(n_points, N)
 
         # Start with a random point
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng(seed)
         selected = [rng.integers(N)]
         min_distances = np.full(N, np.inf)
 
