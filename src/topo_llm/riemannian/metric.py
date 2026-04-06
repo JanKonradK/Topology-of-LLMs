@@ -19,11 +19,9 @@ at each point x_i we:
 from __future__ import annotations
 
 import logging
-from typing import Literal
 
 import numpy as np
 from scipy.spatial import KDTree
-from sklearn.decomposition import PCA
 
 logger = logging.getLogger(__name__)
 
@@ -102,13 +100,29 @@ class MetricTensorEstimator:
         MetricTensorEstimator
             Self, for method chaining.
         """
+        if point_cloud.ndim != 2:
+            raise ValueError(f"point_cloud must be 2D (N, D), got shape {point_cloud.shape}")
         N, D = point_cloud.shape
+        if self.n_neighbors > N:
+            logger.warning(
+                "n_points (%d) < n_neighbors (%d); clamping k to %d",
+                N,
+                self.n_neighbors,
+                N - 1,
+            )
+        if N > 5000:
+            logger.warning(
+                "Fitting metric on %d points — curvature computation will be "
+                "O(N * d^2). Consider subsampling for faster results.",
+                N,
+            )
         self.point_cloud_ = point_cloud.copy()
         k = min(self.n_neighbors, N - 1)
 
         # Estimate intrinsic dimension if not provided
         if self.intrinsic_dim is None:
             from topo_llm.extraction.layers import LayerAnalyzer
+
             est_dim = LayerAnalyzer.intrinsic_dimensionality(point_cloud, method="mle")
             self.intrinsic_dim_ = max(2, min(int(round(est_dim)), D - 1))
             logger.info("Auto-estimated intrinsic dimension: %d", self.intrinsic_dim_)
