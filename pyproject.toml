@@ -95,7 +95,6 @@ where = ["src"]
 testpaths = ["tests"]
 markers = [
     "slow: marks tests that load real models (deselect with '-m \"not slow\"')",
-    "gpu: marks tests requiring CUDA GPU",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
@@ -108,7 +107,18 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
-ignore = ["E501"]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E741",   # ambiguous variable name (l, I, O) — used for math indices
+    "N803",   # uppercase argument name — mathematical convention (X, Y)
+    "N806",   # uppercase variable in function — mathematical convention (S, R, T, D, N)
+    "B905",   # zip() without strict= — not needed for same-length iterables
+    "SIM108", # ternary operator suggestion — readability preference
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E402", "SIM117", "B017"]
+"src/topo_llm/visualization/__init__.py" = ["F401"]  # locals()[name] lazy import pattern
 
 [tool.mypy]
 python_version = "3.10"
