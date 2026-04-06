@@ -9,19 +9,24 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
 
 
 def _require_matplotlib():
     try:
-        import matplotlib.pyplot as plt
         import matplotlib
+        import matplotlib.pyplot as plt
+
         return plt, matplotlib
     except ImportError:
-        raise ImportError("matplotlib required. Install with: pip install topo-llm[viz]")
+        raise ImportError("matplotlib required. Install with: pip install topo-llm[viz]") from None
 
 
 def set_paper_style() -> None:
@@ -34,48 +39,54 @@ def set_paper_style() -> None:
     """
     plt, matplotlib = _require_matplotlib()
 
-    plt.rcParams.update({
-        "figure.dpi": 150,
-        "savefig.dpi": 300,
-        "savefig.bbox": "tight",
-        "savefig.pad_inches": 0.05,
-        "font.size": 9,
-        "axes.titlesize": 10,
-        "axes.labelsize": 9,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
-        "legend.fontsize": 8,
-        "lines.linewidth": 1.5,
-        "lines.markersize": 4,
-        "axes.grid": True,
-        "grid.alpha": 0.3,
-        "figure.figsize": (3.25, 2.5),
-    })
+    plt.rcParams.update(
+        {
+            "figure.dpi": 150,
+            "savefig.dpi": 300,
+            "savefig.bbox": "tight",
+            "savefig.pad_inches": 0.05,
+            "font.size": 9,
+            "axes.titlesize": 10,
+            "axes.labelsize": 9,
+            "xtick.labelsize": 8,
+            "ytick.labelsize": 8,
+            "legend.fontsize": 8,
+            "lines.linewidth": 1.5,
+            "lines.markersize": 4,
+            "axes.grid": True,
+            "grid.alpha": 0.3,
+            "figure.figsize": (3.25, 2.5),
+        }
+    )
 
     # Try LaTeX fonts if available
     try:
-        plt.rcParams.update({
-            "text.usetex": True,
-            "font.family": "serif",
-            "font.serif": ["Computer Modern Roman"],
-        })
-    except Exception:
-        plt.rcParams.update({
-            "font.family": "serif",
-            "mathtext.fontset": "cm",
-        })
+        plt.rcParams.update(
+            {
+                "text.usetex": True,
+                "font.family": "serif",
+                "font.serif": ["Computer Modern Roman"],
+            }
+        )
+    except (RuntimeError, ValueError):
+        plt.rcParams.update(
+            {
+                "font.family": "serif",
+                "mathtext.fontset": "cm",
+            }
+        )
 
 
 # ── Column width constants ────────────────────────────────────
-SINGLE_COL = 3.25   # inches
-DOUBLE_COL = 6.75   # inches
+SINGLE_COL = 3.25  # inches
+DOUBLE_COL = 6.75  # inches
 
 
 def figure_intrinsic_dimension(
     layer_indices: list[int],
     dims_by_model: dict[str, list[float]],
     output_path: str | Path | None = None,
-) -> object:
+) -> Figure:
     """Paper Figure: Intrinsic dimensionality across layers.
 
     Parameters
@@ -97,7 +108,7 @@ def figure_intrinsic_dimension(
     fig, ax = plt.subplots(figsize=(SINGLE_COL, 2.5))
 
     for model_name, dims in dims_by_model.items():
-        ax.plot(layer_indices[:len(dims)], dims, "-o", label=model_name, markersize=3)
+        ax.plot(layer_indices[: len(dims)], dims, "-o", label=model_name, markersize=3)
 
     ax.set_xlabel("Layer")
     ax.set_ylabel("Intrinsic Dimension")
@@ -115,7 +126,7 @@ def figure_curvature_profile(
     layer_indices: list[int],
     curvature_stats: dict[str, dict[str, list[float]]],
     output_path: str | Path | None = None,
-) -> object:
+) -> Figure:
     """Paper Figure: Curvature profiles across layers and models.
 
     Parameters
@@ -139,7 +150,7 @@ def figure_curvature_profile(
     for model_name, stats in curvature_stats.items():
         means = np.array(stats["mean"])
         stds = np.array(stats["std"])
-        layers = layer_indices[:len(means)]
+        layers = layer_indices[: len(means)]
 
         ax.plot(layers, means, "-o", label=model_name, markersize=3)
         ax.fill_between(layers, means - stds, means + stds, alpha=0.15)
@@ -161,7 +172,7 @@ def figure_hallucination_comparison(
     auroc_values: list[float],
     auprc_values: list[float],
     output_path: str | Path | None = None,
-) -> object:
+) -> Figure:
     """Paper Figure: Hallucination detection AUROC/AUPRC comparison.
 
     Parameters
@@ -188,7 +199,7 @@ def figure_hallucination_comparison(
     width = 0.6
 
     # AUROC
-    bars_auroc = axes[0].bar(x, auroc_values, width, color="steelblue", edgecolor="black", linewidth=0.5)
+    axes[0].bar(x, auroc_values, width, color="steelblue", edgecolor="black", linewidth=0.5)
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(method_names, rotation=30, ha="right")
     axes[0].set_ylabel("AUROC")
@@ -196,7 +207,7 @@ def figure_hallucination_comparison(
     axes[0].set_title("(a) AUROC")
 
     # AUPRC
-    bars_auprc = axes[1].bar(x, auprc_values, width, color="coral", edgecolor="black", linewidth=0.5)
+    axes[1].bar(x, auprc_values, width, color="coral", edgecolor="black", linewidth=0.5)
     axes[1].set_xticks(x)
     axes[1].set_xticklabels(method_names, rotation=30, ha="right")
     axes[1].set_ylabel("AUPRC")
