@@ -11,9 +11,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.riemannian.connection import ChristoffelEstimator
 from topo_llm.riemannian.curvature import CurvatureAnalyzer
+from topo_llm.riemannian.metric import MetricTensorEstimator
 
 
 @pytest.fixture
@@ -92,8 +92,14 @@ class TestCurvatureStatistics:
         """Statistics dict should contain all expected keys."""
         stats = sphere_curvature.curvature_statistics(show_progress=False)
         expected_keys = {
-            "scalar_curvatures", "mean", "std", "median",
-            "min", "max", "positive_fraction", "curvature_entropy",
+            "scalar_curvatures",
+            "mean",
+            "std",
+            "median",
+            "min",
+            "max",
+            "positive_fraction",
+            "curvature_entropy",
         }
         assert set(stats.keys()) == expected_keys
 

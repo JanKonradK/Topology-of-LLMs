@@ -8,7 +8,6 @@ especially the 2-sphere where analytical results are available.
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from topo_llm.riemannian.metric import MetricTensorEstimator
 
@@ -52,8 +51,7 @@ class TestMetricTensorEstimator:
             g = est.get_metric_at(i)
             eigenvalues = np.linalg.eigvalsh(g)
             assert np.all(eigenvalues > 0), (
-                f"Point {i}: metric not positive definite, "
-                f"eigenvalues = {eigenvalues}"
+                f"Point {i}: metric not positive definite, eigenvalues = {eigenvalues}"
             )
 
     def test_metric_determinant_positive(self, sphere_points: np.ndarray) -> None:
@@ -91,9 +89,7 @@ class TestMetricTensorEstimator:
         est = MetricTensorEstimator(n_neighbors=20, intrinsic_dim=None)
         est.fit(sphere_points)
 
-        assert 1 <= est.intrinsic_dim_ <= 4, (
-            f"Expected ~2, got {est.intrinsic_dim_}"
-        )
+        assert 1 <= est.intrinsic_dim_ <= 4, f"Expected ~2, got {est.intrinsic_dim_}"
 
     def test_flat_plane_metric_near_identity(self, flat_plane_points: np.ndarray) -> None:
         """On a flat plane, metric should be close to the identity."""
@@ -105,8 +101,7 @@ class TestMetricTensorEstimator:
             g = est.get_metric_at(i)
             # Should be close to identity (scaled by local variance)
             np.testing.assert_allclose(
-                g / g[0, 0], np.eye(2), atol=0.5,
-                err_msg=f"Point {i}: metric far from identity"
+                g / g[0, 0], np.eye(2), atol=0.5, err_msg=f"Point {i}: metric far from identity"
             )
 
     def test_project_and_lift_roundtrip(self, sphere_points: np.ndarray) -> None:
@@ -115,7 +110,6 @@ class TestMetricTensorEstimator:
         est.fit(sphere_points)
 
         # Take a vector in the tangent plane
-        T = est.get_tangent_basis_at(0)
         v_tangent = np.array([1.0, 0.5])
         v_ambient = est.lift_from_tangent(0, v_tangent)
         v_recovered = est.project_to_tangent(0, v_ambient)

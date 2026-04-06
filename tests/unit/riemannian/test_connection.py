@@ -8,10 +8,9 @@ symmetry Γ^k_{ij} = Γ^k_{ji}.
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
-from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.riemannian.connection import ChristoffelEstimator
+from topo_llm.riemannian.metric import MetricTensorEstimator
 
 
 class TestChristoffelEstimator:
@@ -46,9 +45,7 @@ class TestChristoffelEstimator:
         gamma = chris.compute_at(50)
         max_val = np.abs(gamma).max()
         # Allow some numerical noise but should be small
-        assert max_val < 5.0, (
-            f"Flat plane Christoffel symbols too large: max = {max_val}"
-        )
+        assert max_val < 5.0, f"Flat plane Christoffel symbols too large: max = {max_val}"
 
     def test_compute_all(self, sphere_points: np.ndarray) -> None:
         """compute_all should return one array per point and cache."""
@@ -71,6 +68,4 @@ class TestChristoffelEstimator:
 
         for idx in [0, 10, 50]:
             gamma = chris.compute_at(idx)
-            assert np.all(np.isfinite(gamma)), (
-                f"Non-finite Christoffel values at point {idx}"
-            )
+            assert np.all(np.isfinite(gamma)), f"Non-finite Christoffel values at point {idx}"

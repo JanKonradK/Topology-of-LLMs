@@ -9,9 +9,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.riemannian.connection import ChristoffelEstimator
 from topo_llm.riemannian.geodesic import GeodesicSolver
+from topo_llm.riemannian.metric import MetricTensorEstimator
 
 
 @pytest.fixture
@@ -101,7 +101,5 @@ class TestGeodesicDistance:
     def test_distance_matrix_symmetric(self, flat_geodesic: GeodesicSolver) -> None:
         """Distance matrix should be approximately symmetric."""
         indices = [0, 1, 2, 3]
-        D = flat_geodesic.geodesic_distance_matrix(
-            indices, n_shooting=2, show_progress=False
-        )
+        D = flat_geodesic.geodesic_distance_matrix(indices, n_shooting=2, show_progress=False)
         np.testing.assert_allclose(D, D.T, atol=0.5)
