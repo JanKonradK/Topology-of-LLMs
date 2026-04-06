@@ -19,9 +19,9 @@ KLGeometry
 
 from __future__ import annotations
 
-from topo_llm.information.fisher import FisherInformationEstimator
-from topo_llm.information.entropy import EntropySurface
 from topo_llm.information.divergence import KLGeometry
+from topo_llm.information.entropy import EntropySurface
+from topo_llm.information.fisher import FisherInformationEstimator
 
 __all__ = [
     "FisherInformationEstimator",
