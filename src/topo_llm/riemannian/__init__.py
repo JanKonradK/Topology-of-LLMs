@@ -25,10 +25,10 @@ RiemannianSearch
 
 from __future__ import annotations
 
-from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.riemannian.connection import ChristoffelEstimator
 from topo_llm.riemannian.curvature import CurvatureAnalyzer
 from topo_llm.riemannian.geodesic import GeodesicSolver
+from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.riemannian.search import RiemannianSearch
 
 __all__ = [
