@@ -8,8 +8,12 @@ All functions return matplotlib Figure objects for flexible display.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +21,10 @@ logger = logging.getLogger(__name__)
 def _require_matplotlib():
     try:
         import matplotlib.pyplot as plt
+
         return plt
     except ImportError:
-        raise ImportError("matplotlib required. Install with: pip install topo-llm[viz]")
+        raise ImportError("matplotlib required. Install with: pip install topo-llm[viz]") from None
 
 
 def plot_curvature_field(
@@ -28,7 +33,7 @@ def plot_curvature_field(
     title: str = "Scalar Curvature Field",
     cmap: str = "RdBu_r",
     figsize: tuple[int, int] = (10, 8),
-) -> object:
+) -> Figure:
     """Plot scalar curvature as a colored scatter on 2D embeddings.
 
     Parameters
@@ -56,9 +61,15 @@ def plot_curvature_field(
     # Symmetric color scale centered at 0
     vmax = max(abs(curvatures.min()), abs(curvatures.max()))
     sc = ax.scatter(
-        embeddings_2d[:, 0], embeddings_2d[:, 1],
-        c=curvatures, cmap=cmap, vmin=-vmax, vmax=vmax,
-        s=20, alpha=0.7, edgecolors="none",
+        embeddings_2d[:, 0],
+        embeddings_2d[:, 1],
+        c=curvatures,
+        cmap=cmap,
+        vmin=-vmax,
+        vmax=vmax,
+        s=20,
+        alpha=0.7,
+        edgecolors="none",
     )
     plt.colorbar(sc, ax=ax, label="Scalar Curvature")
     ax.set_title(title)
@@ -74,7 +85,7 @@ def plot_geodesic(
     labels: np.ndarray | None = None,
     title: str = "Geodesic Path",
     figsize: tuple[int, int] = (10, 8),
-) -> object:
+) -> Figure:
     """Plot a geodesic path over the embedding point cloud.
 
     Parameters
@@ -100,20 +111,30 @@ def plot_geodesic(
     fig, ax = plt.subplots(figsize=figsize)
 
     if labels is not None:
-        scatter = ax.scatter(
-            embeddings_2d[:, 0], embeddings_2d[:, 1],
-            c=labels, cmap="tab10", s=10, alpha=0.3,
+        ax.scatter(
+            embeddings_2d[:, 0],
+            embeddings_2d[:, 1],
+            c=labels,
+            cmap="tab10",
+            s=10,
+            alpha=0.3,
         )
     else:
         ax.scatter(
-            embeddings_2d[:, 0], embeddings_2d[:, 1],
-            c="lightgray", s=10, alpha=0.3,
+            embeddings_2d[:, 0],
+            embeddings_2d[:, 1],
+            c="lightgray",
+            s=10,
+            alpha=0.3,
         )
 
     # Geodesic path
     ax.plot(
-        geodesic_2d[:, 0], geodesic_2d[:, 1],
-        "r-", linewidth=2, label="Geodesic",
+        geodesic_2d[:, 0],
+        geodesic_2d[:, 1],
+        "r-",
+        linewidth=2,
+        label="Geodesic",
     )
     ax.plot(geodesic_2d[0, 0], geodesic_2d[0, 1], "go", markersize=10, label="Start")
     ax.plot(geodesic_2d[-1, 0], geodesic_2d[-1, 1], "rs", markersize=10, label="End")
@@ -130,7 +151,8 @@ def plot_metric_ellipses(
     n_ellipses: int = 50,
     title: str = "Local Metric Ellipses",
     figsize: tuple[int, int] = (10, 8),
-) -> object:
+    seed: int = 42,
+) -> Figure:
     """Plot metric tensor ellipses at selected points.
 
     Each ellipse visualizes the local metric: elongated in directions
@@ -160,13 +182,16 @@ def plot_metric_ellipses(
     fig, ax = plt.subplots(figsize=figsize)
 
     ax.scatter(
-        embeddings_2d[:, 0], embeddings_2d[:, 1],
-        c="lightgray", s=5, alpha=0.3,
+        embeddings_2d[:, 0],
+        embeddings_2d[:, 1],
+        c="lightgray",
+        s=5,
+        alpha=0.3,
     )
 
     # Select subset of points
     N = len(embeddings_2d)
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(seed)
     indices = rng.choice(N, size=min(n_ellipses, N), replace=False)
 
     for idx in indices:
@@ -186,8 +211,14 @@ def plot_metric_ellipses(
         angle = np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
 
         ellipse = Ellipse(
-            center, width, height, angle=angle,
-            fill=False, edgecolor="blue", linewidth=0.5, alpha=0.6,
+            center,
+            width,
+            height,
+            angle=angle,
+            fill=False,
+            edgecolor="blue",
+            linewidth=0.5,
+            alpha=0.6,
         )
         ax.add_patch(ellipse)
 
@@ -203,7 +234,7 @@ def plot_layer_curvature_profile(
     std_curvatures: list[float],
     title: str = "Curvature Across Layers",
     figsize: tuple[int, int] = (10, 5),
-) -> object:
+) -> Figure:
     """Plot mean scalar curvature as a function of layer depth.
 
     Parameters
@@ -233,8 +264,12 @@ def plot_layer_curvature_profile(
 
     ax.plot(layer_indices, means, "b-o", linewidth=2, label="Mean curvature")
     ax.fill_between(
-        layer_indices, means - stds, means + stds,
-        alpha=0.2, color="blue", label="1 std",
+        layer_indices,
+        means - stds,
+        means + stds,
+        alpha=0.2,
+        color="blue",
+        label="1 std",
     )
     ax.axhline(y=0, color="gray", linestyle="--", alpha=0.5)
 
