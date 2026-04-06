@@ -44,17 +44,13 @@ class TestIntrinsicDimensionality:
     def test_positive_result(self, small_embeddings: np.ndarray) -> None:
         """Dimensionality should always be positive."""
         for method in ["mle", "twonn", "pca_95"]:
-            dim = LayerAnalyzer.intrinsic_dimensionality(
-                small_embeddings, method=method
-            )
+            dim = LayerAnalyzer.intrinsic_dimensionality(small_embeddings, method=method)
             assert dim > 0, f"Method {method} returned non-positive: {dim}"
 
     def test_invalid_method_raises(self, small_embeddings: np.ndarray) -> None:
         """Unknown method should raise ValueError."""
         with pytest.raises(ValueError):
-            LayerAnalyzer.intrinsic_dimensionality(
-                small_embeddings, method="invalid"
-            )
+            LayerAnalyzer.intrinsic_dimensionality(small_embeddings, method="invalid")
 
 
 class TestLayerSimilarity:
@@ -62,9 +58,7 @@ class TestLayerSimilarity:
 
     def test_identical_matrices_cka(self, small_embeddings: np.ndarray) -> None:
         """CKA of a matrix with itself should be 1.0."""
-        sim = LayerAnalyzer.layer_similarity(
-            small_embeddings, small_embeddings, method="cka"
-        )
+        sim = LayerAnalyzer.layer_similarity(small_embeddings, small_embeddings, method="cka")
         assert abs(sim - 1.0) < 0.01, f"Expected 1.0, got {sim}"
 
     def test_identical_matrices_procrustes(self, small_embeddings: np.ndarray) -> None:
@@ -76,9 +70,7 @@ class TestLayerSimilarity:
 
     def test_identical_matrices_cca(self, small_embeddings: np.ndarray) -> None:
         """CCA similarity of identical matrices should be high."""
-        sim = LayerAnalyzer.layer_similarity(
-            small_embeddings, small_embeddings, method="cca"
-        )
+        sim = LayerAnalyzer.layer_similarity(small_embeddings, small_embeddings, method="cca")
         assert sim > 0.9, f"Expected ~1.0, got {sim}"
 
     def test_random_matrices_lower_similarity(self, rng: np.random.Generator) -> None:
@@ -88,21 +80,19 @@ class TestLayerSimilarity:
         sim = LayerAnalyzer.layer_similarity(X, Y, method="cka")
         assert sim < 0.5, f"Expected low similarity, got {sim}"
 
-    def test_similarity_in_range(self, small_embeddings: np.ndarray, rng: np.random.Generator) -> None:
+    def test_similarity_in_range(
+        self, small_embeddings: np.ndarray, rng: np.random.Generator
+    ) -> None:
         """All similarity methods should return values in [0, 1]."""
         other = rng.standard_normal(small_embeddings.shape)
         for method in ["cka", "procrustes", "cca"]:
-            sim = LayerAnalyzer.layer_similarity(
-                small_embeddings, other, method=method
-            )
+            sim = LayerAnalyzer.layer_similarity(small_embeddings, other, method=method)
             assert 0.0 <= sim <= 1.01, f"{method}: {sim} out of range"
 
     def test_invalid_method_raises(self, small_embeddings: np.ndarray) -> None:
         """Unknown method should raise ValueError."""
         with pytest.raises(ValueError):
-            LayerAnalyzer.layer_similarity(
-                small_embeddings, small_embeddings, method="invalid"
-            )
+            LayerAnalyzer.layer_similarity(small_embeddings, small_embeddings, method="invalid")
 
 
 class TestAnisotropy:
@@ -118,9 +108,7 @@ class TestAnisotropy:
             f"Mean cosine too high for isotropic data: {result['mean_cosine']}"
         )
         # Effective rank should be high (close to min(n, d))
-        assert result["effective_rank"] > 20, (
-            f"Effective rank too low: {result['effective_rank']}"
-        )
+        assert result["effective_rank"] > 20, f"Effective rank too low: {result['effective_rank']}"
 
     def test_anisotropic_data(self, rng: np.random.Generator) -> None:
         """Data with one dominant direction should have high mean cosine."""
@@ -139,8 +127,10 @@ class TestAnisotropy:
         """Result dict should contain all expected keys."""
         result = LayerAnalyzer.compute_anisotropy(small_embeddings)
         expected_keys = {
-            "mean_cosine", "isotropy_score",
-            "explained_variance_ratio", "effective_rank",
+            "mean_cosine",
+            "isotropy_score",
+            "explained_variance_ratio",
+            "effective_rank",
         }
         assert set(result.keys()) == expected_keys
 

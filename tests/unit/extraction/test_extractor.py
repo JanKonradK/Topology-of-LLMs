@@ -30,8 +30,7 @@ class TestEmbeddingExtractorShapes:
         for layer_idx, emb in result.layer_embeddings.items():
             seq_len = len(result.tokens)
             assert emb.shape == (seq_len, extractor.hidden_dim), (
-                f"Layer {layer_idx}: expected ({seq_len}, {extractor.hidden_dim}), "
-                f"got {emb.shape}"
+                f"Layer {layer_idx}: expected ({seq_len}, {extractor.hidden_dim}), got {emb.shape}"
             )
 
         for layer_idx, emb in result.pooled_embeddings.items():
@@ -100,17 +99,14 @@ class TestEmbeddingExtractorShapes:
         extractor = EmbeddingExtractor(tiny_model_name, device="cpu")
         texts = ["Hello", "World", "Test", "Input"]
 
-        result = extractor.extract_dataset(
-            texts, layers=[0, -1], batch_size=2, show_progress=False
-        )
+        result = extractor.extract_dataset(texts, layers=[0, -1], batch_size=2, show_progress=False)
 
         # Should have exactly 2 layers
         assert len(result) == 2
 
         for layer_idx, matrix in result.items():
             assert matrix.shape == (4, extractor.hidden_dim), (
-                f"Layer {layer_idx}: expected (4, {extractor.hidden_dim}), "
-                f"got {matrix.shape}"
+                f"Layer {layer_idx}: expected (4, {extractor.hidden_dim}), got {matrix.shape}"
             )
 
     @pytest.mark.slow
@@ -121,18 +117,14 @@ class TestEmbeddingExtractorShapes:
         extractor = EmbeddingExtractor(tiny_model_name, device="cpu")
         texts = ["Hello", "World"]
 
-        original = extractor.extract_dataset(
-            texts, layers=[0], batch_size=2, show_progress=False
-        )
+        original = extractor.extract_dataset(texts, layers=[0], batch_size=2, show_progress=False)
 
         # Save and reload
         path = extractor.save_embeddings(original, tmp_path / "test_emb")
         loaded = EmbeddingExtractor.load_embeddings(path)
 
         for layer_idx in original:
-            np.testing.assert_array_almost_equal(
-                original[layer_idx], loaded[layer_idx]
-            )
+            np.testing.assert_array_almost_equal(original[layer_idx], loaded[layer_idx])
 
 
 class TestPoolingFunction:

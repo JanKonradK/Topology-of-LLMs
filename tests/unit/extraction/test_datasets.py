@@ -7,8 +7,6 @@ and expected category structure.
 
 from __future__ import annotations
 
-import pytest
-
 from topo_llm.extraction.datasets import DatasetGenerator
 
 
@@ -26,9 +24,16 @@ class TestSemanticCategories:
         texts, labels, info = DatasetGenerator.semantic_categories(n_per_category=10)
         unique_labels = set(labels)
         expected = {
-            "animals", "vehicles", "emotions", "colors", "countries",
-            "mathematical_concepts", "musical_instruments", "diseases",
-            "programming_languages", "foods",
+            "animals",
+            "vehicles",
+            "emotions",
+            "colors",
+            "countries",
+            "mathematical_concepts",
+            "musical_instruments",
+            "diseases",
+            "programming_languages",
+            "foods",
         }
         assert unique_labels == expected
 
@@ -37,6 +42,7 @@ class TestSemanticCategories:
         n_per = 15
         texts, labels, info = DatasetGenerator.semantic_categories(n_per_category=n_per)
         from collections import Counter
+
         counts = Counter(labels)
         for category, count in counts.items():
             assert count == n_per, f"{category} has {count} instead of {n_per}"
