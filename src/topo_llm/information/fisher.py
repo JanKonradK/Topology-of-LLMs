@@ -22,12 +22,13 @@ logger = logging.getLogger(__name__)
 def _require_torch():
     try:
         import torch
+
         return torch
     except ImportError:
         raise ImportError(
             "PyTorch is required for Fisher information estimation. "
             "Install with: pip install topo-llm[torch]"
-        )
+        ) from None
 
 
 class FisherInformationEstimator:
@@ -58,14 +59,17 @@ class FisherInformationEstimator:
         model_name: str,
         device: str = "auto",
         n_samples: int = 100,
+        seed: int = 42,
     ) -> None:
-        torch = _require_torch()
+        _require_torch()
         import transformers
+
         from topo_llm.device import get_device
 
         self.model_name = model_name
         self._device = get_device(device)
         self.n_samples = n_samples
+        self._rng_seed = seed
 
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
         if self.tokenizer.pad_token is None:
@@ -91,9 +95,7 @@ class FisherInformationEstimator:
             return self.model.lm_head(hidden_state)
         # GPT-2 uses transformer.wte for tying weights
         elif hasattr(self.model, "transformer") and hasattr(self.model.transformer, "wte"):
-            return torch.nn.functional.linear(
-                hidden_state, self.model.transformer.wte.weight
-            )
+            return torch.nn.functional.linear(hidden_state, self.model.transformer.wte.weight)
         else:
             raise RuntimeError("Cannot find LM head for this model architecture")
 
@@ -116,6 +118,12 @@ class FisherInformationEstimator:
         FisherResult
             Fisher matrix, trace, eigenvalues, effective dimension,
             entropy, and top-k probabilities.
+
+        Notes
+        -----
+        Complexity is O(n_samples * forward_pass_cost) where n_samples
+        is the Monte Carlo sample count set in the constructor. Each
+        sample requires a full model forward pass with perturbation.
         """
         torch = _require_torch()
 
@@ -142,7 +150,7 @@ class FisherInformationEstimator:
         # Empirical Fisher via random perturbations
         # Reduce dimensionality for tractability
         reduced_dim = min(50, self.hidden_dim)
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng(self._rng_seed)
 
         # Random projection matrix
         projection = rng.standard_normal((self.hidden_dim, reduced_dim))
@@ -195,7 +203,7 @@ class FisherInformationEstimator:
         if fisher_trace > 1e-12:
             p = eigenvalues / fisher_trace
             p = p[p > 1e-12]
-            effective_dim = float(1.0 / np.sum(p ** 2)) if len(p) > 0 else 0.0
+            effective_dim = float(1.0 / np.sum(p**2)) if len(p) > 0 else 0.0
         else:
             effective_dim = 0.0
 
@@ -232,6 +240,7 @@ class FisherInformationEstimator:
         """
         if show_progress:
             from tqdm import tqdm
+
             iterator = tqdm(prompts, desc="Fisher traces", unit="prompt")
         else:
             iterator = prompts
