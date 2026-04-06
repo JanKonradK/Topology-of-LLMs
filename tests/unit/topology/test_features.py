@@ -48,9 +48,7 @@ class TestPersistenceImage:
 
     def test_shape(self, sample_diagrams: list[np.ndarray]) -> None:
         """Should return correct resolution."""
-        img = TopologicalFeatures.persistence_image(
-            sample_diagrams[0], resolution=(15, 15)
-        )
+        img = TopologicalFeatures.persistence_image(sample_diagrams[0], resolution=(15, 15))
         assert img.shape == (15, 15)
 
     def test_non_negative(self, sample_diagrams: list[np.ndarray]) -> None:

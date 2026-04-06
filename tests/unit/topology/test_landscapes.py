@@ -15,11 +15,13 @@ from topo_llm.topology.landscapes import PersistenceLandscape
 @pytest.fixture
 def simple_diagram() -> np.ndarray:
     """Simple persistence diagram."""
-    return np.array([
-        [0.0, 1.0],
-        [0.2, 0.8],
-        [0.5, 2.0],
-    ])
+    return np.array(
+        [
+            [0.0, 1.0],
+            [0.2, 0.8],
+            [0.5, 2.0],
+        ]
+    )
 
 
 @pytest.fixture
@@ -127,9 +129,7 @@ class TestPermutationTest:
         group_a = landscapes[:5]
         group_b = landscapes[5:]
 
-        result = PersistenceLandscape.permutation_test(
-            group_a, group_b, n_permutations=100
-        )
+        result = PersistenceLandscape.permutation_test(group_a, group_b, n_permutations=100)
         # With same distribution, p-value should not be extremely low
         assert result["p_value"] >= 0.0
         assert "test_statistic" in result

@@ -20,15 +20,19 @@ def simple_diagrams() -> list[np.ndarray]:
     H_0: 3 components, one very persistent
     H_1: 2 loops, one persistent
     """
-    h0 = np.array([
-        [0.0, 0.5],   # short-lived
-        [0.0, 0.3],   # short-lived
-        [0.0, 10.0],  # very persistent (connected component)
-    ])
-    h1 = np.array([
-        [0.2, 0.8],   # short loop
-        [0.1, 5.0],   # persistent loop
-    ])
+    h0 = np.array(
+        [
+            [0.0, 0.5],  # short-lived
+            [0.0, 0.3],  # short-lived
+            [0.0, 10.0],  # very persistent (connected component)
+        ]
+    )
+    h1 = np.array(
+        [
+            [0.2, 0.8],  # short loop
+            [0.1, 5.0],  # persistent loop
+        ]
+    )
     return [h0, h1]
 
 
@@ -63,7 +67,7 @@ class TestBettiCurve:
         """Each curve should have correct shape."""
         analyzer = PersistentHomologyAnalyzer(simple_diagrams)
         curves = analyzer.betti_curve(n_steps=50)
-        for k, (eps, vals) in curves.items():
+        for _k, (eps, vals) in curves.items():
             assert len(eps) == 50
             assert len(vals) == 50
 

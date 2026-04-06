@@ -42,6 +42,7 @@ class TestMaxminSubsample:
         sub, _ = FiltrationBuilder.maxmin_subsample(sphere_points, n_points=50)
         # Minimum pairwise distance should be reasonable
         from scipy.spatial.distance import pdist
+
         min_dist = pdist(sub).min()
         assert min_dist > 0.01, f"Points too close: min_dist = {min_dist}"
 
@@ -54,9 +55,7 @@ class TestVietorisRips:
         """Circle should have 1 persistent H_1 feature."""
         from topo_llm.topology.filtration import FiltrationBuilder
 
-        result = FiltrationBuilder.vietoris_rips(
-            circle_points, max_dimension=1
-        )
+        result = FiltrationBuilder.vietoris_rips(circle_points, max_dimension=1)
         assert len(result.diagrams) >= 2
         assert result.n_points_used == len(circle_points)
 
@@ -65,9 +64,7 @@ class TestVietorisRips:
         """Result should have correct structure."""
         from topo_llm.topology.filtration import FiltrationBuilder
 
-        result = FiltrationBuilder.vietoris_rips(
-            sphere_points, max_dimension=2, n_points=100
-        )
+        result = FiltrationBuilder.vietoris_rips(sphere_points, max_dimension=2, n_points=100)
         assert result.n_points_used == 100
         assert result.computation_time > 0
         assert result.backend == "ripser"
