@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import logging
 
+from topo_llm.types import DeviceInfo
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,20 +65,20 @@ def get_device(preference: str = "auto") -> str:
     raise ValueError(f"Unknown device preference: {preference!r}")
 
 
-def device_info() -> dict[str, object]:
+def device_info() -> DeviceInfo:
     """Return information about available compute devices.
 
     Returns
     -------
-    dict[str, object]
-        Dictionary with keys:
+    DeviceInfo
+        TypedDict with keys:
         - ``"cuda_available"``: bool
         - ``"cuda_device_count"``: int
         - ``"cuda_device_name"``: str or None
         - ``"mps_available"``: bool
         - ``"selected"``: str (result of auto-detection)
     """
-    info: dict[str, object] = {
+    info: DeviceInfo = {
         "cuda_available": _cuda_available(),
         "cuda_device_count": 0,
         "cuda_device_name": None,
@@ -87,9 +89,10 @@ def device_info() -> dict[str, object]:
     if info["cuda_available"]:
         try:
             import torch
+
             info["cuda_device_count"] = torch.cuda.device_count()
             info["cuda_device_name"] = torch.cuda.get_device_name(0)
-        except Exception:
+        except (RuntimeError, ImportError, IndexError, AttributeError):
             pass
 
     return info
@@ -99,6 +102,7 @@ def _cuda_available() -> bool:
     """Check if CUDA is available via PyTorch."""
     try:
         import torch
+
         return torch.cuda.is_available()
     except ImportError:
         return False
@@ -108,6 +112,7 @@ def _mps_available() -> bool:
     """Check if MPS (Apple Silicon) is available via PyTorch."""
     try:
         import torch
+
         return hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
     except ImportError:
         return False
