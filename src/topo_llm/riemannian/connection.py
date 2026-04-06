@@ -111,9 +111,7 @@ class ChristoffelEstimator:
                 for j in range(i, m):  # exploit symmetry
                     value = 0.0
                     for l in range(m):
-                        value += g_inv[k, l] * (
-                            dg[i, j, l] + dg[j, i, l] - dg[l, i, j]
-                        )
+                        value += g_inv[k, l] * (dg[i, j, l] + dg[j, i, l] - dg[l, i, j])
                     value *= 0.5
                     gamma[k, i, j] = value
                     gamma[k, j, i] = value  # symmetric in lower indices
@@ -157,9 +155,7 @@ class ChristoffelEstimator:
                 for j in range(i, m):
                     value = 0.0
                     for l in range(m):
-                        value += g_inv[k, l] * (
-                            dg[i, j, l] + dg[j, i, l] - dg[l, i, j]
-                        )
+                        value += g_inv[k, l] * (dg[i, j, l] + dg[j, i, l] - dg[l, i, j])
                     value *= 0.5
                     gamma[k, i, j] = value
                     gamma[k, j, i] = value
