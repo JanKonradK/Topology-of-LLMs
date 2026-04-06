@@ -17,8 +17,9 @@ import logging
 import numpy as np
 from tqdm import tqdm
 
-from topo_llm.riemannian.metric import MetricTensorEstimator
 from topo_llm.riemannian.connection import ChristoffelEstimator
+from topo_llm.riemannian.metric import MetricTensorEstimator
+from topo_llm.types import CurvatureStats
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,12 @@ class CurvatureAnalyzer:
         np.ndarray
             Riemann tensor of shape ``(m, m, m, m)`` where
             ``result[l, i, j, k] = R^l_{ijk}``.
+
+        Notes
+        -----
+        Complexity is O(d^4) where d is the intrinsic dimensionality,
+        due to the four-index tensor. Use PCA to reduce dimensionality
+        before calling (d=50 is typical).
         """
         m = self.metric.intrinsic_dim_
         h = self.christoffel.h
@@ -188,8 +195,6 @@ class CurvatureAnalyzer:
         R_upper = self.riemann_tensor_at(idx)  # R^l_{ijk}
         g = self.metric.metric_tensors_[idx]
 
-        m = self.metric.intrinsic_dim_
-
         # Lower the first index: R_{ijkl} = g_{lm} R^m_{ijk}
         # Actually: R_{lijk} = g_{lm} R^m_{ijk}
         # We want R_{ijkl} with specific contraction for sectional curvature
@@ -202,7 +207,7 @@ class CurvatureAnalyzer:
         g_v1v1 = v1 @ g @ v1
         g_v2v2 = v2 @ g @ v2
         g_v1v2 = v1 @ g @ v2
-        denominator = g_v1v1 * g_v2v2 - g_v1v2 ** 2
+        denominator = g_v1v1 * g_v2v2 - g_v1v2**2
 
         if abs(denominator) < 1e-12:
             return 0.0
@@ -238,7 +243,7 @@ class CurvatureAnalyzer:
     def curvature_statistics(
         self,
         show_progress: bool = True,
-    ) -> dict[str, object]:
+    ) -> CurvatureStats:
         """Compute comprehensive curvature statistics.
 
         Parameters
@@ -248,7 +253,7 @@ class CurvatureAnalyzer:
 
         Returns
         -------
-        dict[str, object]
+        CurvatureStats
             Dictionary with keys:
 
             - ``"scalar_curvatures"``: ``(N,)`` array
@@ -261,7 +266,11 @@ class CurvatureAnalyzer:
         # Entropy of curvature distribution (via histogram)
         hist, _ = np.histogram(curvatures, bins=50, density=True)
         hist = hist[hist > 0]
-        bin_width = (curvatures.max() - curvatures.min()) / 50 if curvatures.max() != curvatures.min() else 1.0
+        bin_width = (
+            (curvatures.max() - curvatures.min()) / 50
+            if curvatures.max() != curvatures.min()
+            else 1.0
+        )
         probs = hist * bin_width
         probs = probs[probs > 0]
         entropy = -np.sum(probs * np.log(probs + 1e-12))
