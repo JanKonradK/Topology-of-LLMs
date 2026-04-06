@@ -8,14 +8,14 @@ rather than dicts ensures type safety and self-documenting interfaces.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import Protocol, TypedDict, runtime_checkable
 
 import numpy as np
-
 
 # ═══════════════════════════════════════════════════════════════
 # Embedding Types
 # ═══════════════════════════════════════════════════════════════
+
 
 @dataclass
 class EmbeddingResult:
@@ -76,6 +76,7 @@ class DatasetInfo:
 # Geometry Types
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class CurvatureResult:
     """Curvature computation results at a single point.
@@ -129,6 +130,7 @@ class GeodesicResult:
 # ═══════════════════════════════════════════════════════════════
 # Topology Types
 # ═══════════════════════════════════════════════════════════════
+
 
 @dataclass
 class PersistenceResult:
@@ -188,6 +190,7 @@ class TopologicalSummary:
 # Information Geometry Types
 # ═══════════════════════════════════════════════════════════════
 
+
 @dataclass
 class FisherResult:
     """Result of Fisher Information estimation.
@@ -219,6 +222,7 @@ class FisherResult:
 # ═══════════════════════════════════════════════════════════════
 # Application Types
 # ═══════════════════════════════════════════════════════════════
+
 
 @dataclass
 class HallucinationScore:
@@ -280,6 +284,7 @@ class EvaluationResult:
 # Protocols
 # ═══════════════════════════════════════════════════════════════
 
+
 @runtime_checkable
 class MetricField(Protocol):
     """Protocol for a smooth Riemannian metric field.
@@ -317,3 +322,58 @@ class MetricField(Protocol):
             Inverse metric tensor, shape (m, m).
         """
         ...
+
+
+# ═══════════════════════════════════════════════════════════════
+# TypedDicts for structured dict returns
+# ═══════════════════════════════════════════════════════════════
+
+
+class DeviceInfo(TypedDict):
+    """Information about available compute devices."""
+
+    cuda_available: bool
+    cuda_device_count: int
+    cuda_device_name: str | None
+    mps_available: bool
+    selected: str
+
+
+class AnisotropyResult(TypedDict):
+    """Anisotropy metrics for an embedding space."""
+
+    mean_cosine: float
+    isotropy_score: float
+    explained_variance_ratio: np.ndarray
+    effective_rank: float
+
+
+class CurvatureStats(TypedDict):
+    """Comprehensive curvature statistics for a point cloud."""
+
+    scalar_curvatures: np.ndarray
+    mean: float
+    std: float
+    median: float
+    min: float
+    max: float
+    positive_fraction: float
+    curvature_entropy: float
+
+
+class ComparisonResult(TypedDict):
+    """Comparison of nearest neighbors under different metrics."""
+
+    euclidean_neighbors: list[int]
+    cosine_neighbors: list[int]
+    geodesic_neighbors: list[int]
+    rank_correlation_euclid_geo: float
+    rank_correlation_cosine_geo: float
+
+
+class RetrievalResult(TypedDict):
+    """A single retrieval result with text, distance, and rank."""
+
+    text: str
+    distance: float
+    rank: int
