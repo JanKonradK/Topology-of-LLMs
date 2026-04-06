@@ -7,8 +7,12 @@ Plot Fisher information heatmaps, entropy surfaces, and KL matrices.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +20,17 @@ logger = logging.getLogger(__name__)
 def _require_matplotlib():
     try:
         import matplotlib.pyplot as plt
+
         return plt
     except ImportError:
-        raise ImportError("matplotlib required. Install with: pip install topo-llm[viz]")
+        raise ImportError("matplotlib required. Install with: pip install topo-llm[viz]") from None
 
 
 def plot_fisher_heatmap(
     fisher_matrix: np.ndarray,
     title: str = "Fisher Information Matrix",
     figsize: tuple[int, int] = (8, 6),
-) -> object:
+) -> Figure:
     """Plot the Fisher Information Matrix as a heatmap.
 
     Parameters
@@ -60,7 +65,7 @@ def plot_entropy_scatter(
     title: str = "Entropy Surface",
     cmap: str = "YlOrRd",
     figsize: tuple[int, int] = (10, 8),
-) -> object:
+) -> Figure:
     """Plot entropy as colored scatter on 2D embeddings.
 
     Parameters
@@ -85,8 +90,13 @@ def plot_entropy_scatter(
 
     fig, ax = plt.subplots(figsize=figsize)
     sc = ax.scatter(
-        embeddings_2d[:, 0], embeddings_2d[:, 1],
-        c=entropies, cmap=cmap, s=20, alpha=0.7, edgecolors="none",
+        embeddings_2d[:, 0],
+        embeddings_2d[:, 1],
+        c=entropies,
+        cmap=cmap,
+        s=20,
+        alpha=0.7,
+        edgecolors="none",
     )
     plt.colorbar(sc, ax=ax, label="Entropy (nats)")
     ax.set_title(title)
@@ -101,7 +111,7 @@ def plot_kl_matrix(
     labels: list[str] | None = None,
     title: str = "Jensen-Shannon Divergence Matrix",
     figsize: tuple[int, int] = (10, 8),
-) -> object:
+) -> Figure:
     """Plot pairwise JSD as a heatmap.
 
     Parameters
@@ -142,7 +152,7 @@ def plot_fisher_trace_by_layer(
     traces: list[float],
     title: str = "Fisher Trace Across Layers",
     figsize: tuple[int, int] = (10, 5),
-) -> object:
+) -> Figure:
     """Plot Fisher trace as a function of layer depth.
 
     Parameters
