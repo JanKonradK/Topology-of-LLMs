@@ -51,47 +51,67 @@ __all__ = [
 def __getattr__(name: str):
     """Lazy imports to avoid loading matplotlib at package import time."""
     _manifold = {
-        "plot_curvature_field", "plot_geodesic",
-        "plot_metric_ellipses", "plot_layer_curvature_profile",
+        "plot_curvature_field",
+        "plot_geodesic",
+        "plot_metric_ellipses",
+        "plot_layer_curvature_profile",
     }
     _persistence = {
-        "plot_persistence_diagram", "plot_barcode",
-        "plot_betti_curve", "plot_persistence_landscape",
+        "plot_persistence_diagram",
+        "plot_barcode",
+        "plot_betti_curve",
+        "plot_persistence_landscape",
     }
     _information = {
-        "plot_fisher_heatmap", "plot_entropy_scatter",
-        "plot_kl_matrix", "plot_fisher_trace_by_layer",
+        "plot_fisher_heatmap",
+        "plot_entropy_scatter",
+        "plot_kl_matrix",
+        "plot_fisher_trace_by_layer",
     }
     _paper = {
-        "set_paper_style", "figure_intrinsic_dimension",
-        "figure_curvature_profile", "figure_hallucination_comparison",
+        "set_paper_style",
+        "figure_intrinsic_dimension",
+        "figure_curvature_profile",
+        "figure_hallucination_comparison",
         "save_all_figures",
     }
 
     if name in _manifold:
         from topo_llm.visualization.manifold import (
-            plot_curvature_field, plot_geodesic,
-            plot_metric_ellipses, plot_layer_curvature_profile,
+            plot_curvature_field,
+            plot_geodesic,
+            plot_layer_curvature_profile,
+            plot_metric_ellipses,
         )
+
         return locals()[name]
     if name in _persistence:
         from topo_llm.visualization.persistence import (
-            plot_persistence_diagram, plot_barcode,
-            plot_betti_curve, plot_persistence_landscape,
+            plot_barcode,
+            plot_betti_curve,
+            plot_persistence_diagram,
+            plot_persistence_landscape,
         )
+
         return locals()[name]
     if name in _information:
         from topo_llm.visualization.information import (
-            plot_fisher_heatmap, plot_entropy_scatter,
-            plot_kl_matrix, plot_fisher_trace_by_layer,
+            plot_entropy_scatter,
+            plot_fisher_heatmap,
+            plot_fisher_trace_by_layer,
+            plot_kl_matrix,
         )
+
         return locals()[name]
     if name in _paper:
         from topo_llm.visualization.paper import (
-            set_paper_style, figure_intrinsic_dimension,
-            figure_curvature_profile, figure_hallucination_comparison,
+            figure_curvature_profile,
+            figure_hallucination_comparison,
+            figure_intrinsic_dimension,
             save_all_figures,
+            set_paper_style,
         )
+
         return locals()[name]
 
     raise AttributeError(f"module 'topo_llm.visualization' has no attribute {name!r}")
