@@ -26,9 +26,7 @@ class TestCircleTopology:
     def test_circle_full_pipeline(self, circle_points: np.ndarray) -> None:
         """Circle → Rips → Homology → Landscapes → Features end-to-end."""
         # Build filtration
-        diagrams = FiltrationBuilder.vietoris_rips(
-            circle_points, max_dim=1, max_edge=2.0
-        )
+        diagrams = FiltrationBuilder.vietoris_rips(circle_points, max_dim=1, max_edge=2.0)
         assert len(diagrams) >= 2  # H_0 and H_1
 
         # Analyze homology
@@ -76,9 +74,7 @@ class TestTwoClustersTopology:
     @pytest.mark.slow
     def test_two_clusters_h0(self, two_clusters: np.ndarray) -> None:
         """Two clusters should produce two persistent H_0 features."""
-        diagrams = FiltrationBuilder.vietoris_rips(
-            two_clusters, max_dim=1, max_edge=5.0
-        )
+        diagrams = FiltrationBuilder.vietoris_rips(two_clusters, max_dim=1, max_edge=5.0)
 
         analyzer = PersistentHomologyAnalyzer(diagrams)
 
@@ -119,9 +115,7 @@ class TestMaxminSubsampling:
     def test_subsample_then_homology(self, synthetic_embeddings: np.ndarray) -> None:
         """Subsample high-dim data → compute pairwise distances → verify shape."""
         # Subsample to manageable size
-        subset, indices = FiltrationBuilder.maxmin_subsample(
-            synthetic_embeddings, n_points=100
-        )
+        subset, indices = FiltrationBuilder.maxmin_subsample(synthetic_embeddings, n_points=100)
         assert subset.shape[0] == 100
         assert subset.shape[1] == 768
         assert len(indices) == 100

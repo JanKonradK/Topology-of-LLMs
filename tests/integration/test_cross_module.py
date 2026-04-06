@@ -8,7 +8,6 @@ the NumPy array interchange format works correctly between them.
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from topo_llm.extraction import LayerAnalyzer
 
@@ -20,7 +19,11 @@ class TestLayerAnalysisToRiemannian:
         """Intrinsic dimensionality estimate informs PCA reduced_dim choice."""
         from sklearn.decomposition import PCA
 
-        from topo_llm.riemannian import ChristoffelEstimator, CurvatureAnalyzer, MetricTensorEstimator
+        from topo_llm.riemannian import (
+            ChristoffelEstimator,
+            CurvatureAnalyzer,
+            MetricTensorEstimator,
+        )
 
         rng = np.random.default_rng(42)
         embeddings = rng.standard_normal((60, 100)).astype(np.float32)
@@ -91,9 +94,9 @@ class TestRiemannianAndTopologyOnSphere:
 
         # Topological side — synthetic diagrams (no ripser needed)
         diagrams = [
-            np.array([[0.0, 1.0], [0.0, 0.5]]),   # H_0
-            np.array([]).reshape(0, 2),              # H_1
-            np.array([[0.5, 1.5]]),                  # H_2
+            np.array([[0.0, 1.0], [0.0, 0.5]]),  # H_0
+            np.array([]).reshape(0, 2),  # H_1
+            np.array([[0.5, 1.5]]),  # H_2
         ]
         feat = TopologicalFeatures.statistics_vector(diagrams)
         assert feat.shape == (30,)
