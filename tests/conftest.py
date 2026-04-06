@@ -10,8 +10,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-
 # ── Synthetic data fixtures ───────────────────────────────────
+
 
 @pytest.fixture
 def rng() -> np.random.Generator:
@@ -138,6 +138,7 @@ def low_dim_subspace(rng: np.random.Generator) -> np.ndarray:
 
 
 # ── Model name fixtures ───────────────────────────────────────
+
 
 @pytest.fixture
 def tiny_model_name() -> str:
