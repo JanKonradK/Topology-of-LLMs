@@ -25,24 +25,26 @@ def _require_torch():
     """Lazy import guard for PyTorch."""
     try:
         import torch
+
         return torch
     except ImportError:
         raise ImportError(
             "PyTorch is required for embedding extraction. "
             "Install with: pip install topo-llm[torch]"
-        )
+        ) from None
 
 
 def _require_transformers():
     """Lazy import guard for HuggingFace Transformers."""
     try:
         import transformers
+
         return transformers
     except ImportError:
         raise ImportError(
             "HuggingFace Transformers is required for embedding extraction. "
             "Install with: pip install topo-llm[torch]"
-        )
+        ) from None
 
 
 class EmbeddingExtractor:
@@ -108,7 +110,9 @@ class EmbeddingExtractor:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # Load model
-        logger.info("Loading model %s (precision=%s, device=%s)", model_name, precision, self._device_str)
+        logger.info(
+            "Loading model %s (precision=%s, device=%s)", model_name, precision, self._device_str
+        )
         self.model = transformers.AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=self._torch_dtype,
@@ -124,7 +128,9 @@ class EmbeddingExtractor:
 
         logger.info(
             "Model loaded: %d layers, %d hidden dim, %s",
-            self.n_layers, self.hidden_dim, self._device_str,
+            self.n_layers,
+            self.hidden_dim,
+            self._device_str,
         )
 
     def extract(
@@ -172,7 +178,7 @@ class EmbeddingExtractor:
 
         token_ids = inputs["input_ids"][0].cpu().numpy()
         tokens = self.tokenizer.convert_ids_to_tokens(token_ids.tolist())
-        attention_mask = inputs.get("attention_mask", None)
+        attention_mask = inputs.get("attention_mask")
         if attention_mask is not None:
             attention_mask = attention_mask[0].cpu()
 
@@ -183,9 +189,7 @@ class EmbeddingExtractor:
             # hs shape: (1, seq_len, hidden_dim)
             layer_emb = hs[0].cpu().float().numpy()  # (seq_len, hidden_dim)
             layer_embeddings[layer_idx] = layer_emb
-            pooled_embeddings[layer_idx] = self._pool(
-                layer_emb, attention_mask, pooling
-            )
+            pooled_embeddings[layer_idx] = self._pool(layer_emb, attention_mask, pooling)
 
         return EmbeddingResult(
             text=text,
@@ -225,6 +229,7 @@ class EmbeddingExtractor:
 
         if show_progress:
             from tqdm import tqdm
+
             batches = range(0, len(texts), batch_size)
             batches = tqdm(batches, desc="Extracting embeddings", unit="batch")
         else:
@@ -249,7 +254,7 @@ class EmbeddingExtractor:
                 outputs = self.model(**inputs)
 
             hidden_states = outputs.hidden_states
-            attention_masks = inputs.get("attention_mask", None)
+            attention_masks = inputs.get("attention_mask")
 
             # Process each item in the batch
             for i, text in enumerate(batch_texts):
@@ -263,9 +268,7 @@ class EmbeddingExtractor:
                     actual_len = len(token_ids)
 
                 token_ids_trimmed = token_ids[:actual_len]
-                tokens = self.tokenizer.convert_ids_to_tokens(
-                    token_ids_trimmed.tolist()
-                )
+                tokens = self.tokenizer.convert_ids_to_tokens(token_ids_trimmed.tolist())
 
                 layer_embeddings: dict[int, np.ndarray] = {}
                 pooled_embeddings: dict[int, np.ndarray] = {}
@@ -275,9 +278,7 @@ class EmbeddingExtractor:
                     # Trim to actual length
                     layer_emb_trimmed = layer_emb[:actual_len]
                     layer_embeddings[layer_idx] = layer_emb_trimmed
-                    pooled_embeddings[layer_idx] = self._pool(
-                        layer_emb, mask, pooling
-                    )
+                    pooled_embeddings[layer_idx] = self._pool(layer_emb, mask, pooling)
 
                 results.append(
                     EmbeddingResult(
@@ -344,6 +345,7 @@ class EmbeddingExtractor:
 
         if show_progress:
             from tqdm import tqdm
+
             batches = range(0, len(texts), batch_size)
             batches = tqdm(batches, desc="Extracting dataset", unit="batch")
         else:
@@ -365,7 +367,7 @@ class EmbeddingExtractor:
                 outputs = self.model(**inputs)
 
             hidden_states = outputs.hidden_states
-            attention_masks = inputs.get("attention_mask", None)
+            attention_masks = inputs.get("attention_mask")
 
             for layer_idx in resolved_layers:
                 hs = hidden_states[layer_idx]  # (batch, seq_len, hidden_dim)
