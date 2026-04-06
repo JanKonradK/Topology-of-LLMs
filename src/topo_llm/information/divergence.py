@@ -19,11 +19,10 @@ logger = logging.getLogger(__name__)
 def _require_torch():
     try:
         import torch
+
         return torch
     except ImportError:
-        raise ImportError(
-            "PyTorch required. Install with: pip install topo-llm[torch]"
-        )
+        raise ImportError("PyTorch required. Install with: pip install topo-llm[torch]") from None
 
 
 class KLGeometry:
@@ -48,8 +47,9 @@ class KLGeometry:
         model_name: str,
         device: str = "auto",
     ) -> None:
-        torch = _require_torch()
+        _require_torch()
         import transformers
+
         from topo_llm.device import get_device
 
         self.model_name = model_name
