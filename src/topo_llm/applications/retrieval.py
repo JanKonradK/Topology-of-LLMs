@@ -14,6 +14,8 @@ import numpy as np
 from scipy.spatial import KDTree
 from sklearn.decomposition import PCA
 
+from topo_llm.types import RetrievalResult
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,9 +57,8 @@ class GeodesicRetrieval:
     def _ensure_extractor(self) -> None:
         if self._extractor is None:
             from topo_llm.extraction.extractor import EmbeddingExtractor
-            self._extractor = EmbeddingExtractor(
-                self.model_name, device=self.device
-            )
+
+            self._extractor = EmbeddingExtractor(self.model_name, device=self.device)
 
     def index(
         self,
@@ -106,9 +107,9 @@ class GeodesicRetrieval:
 
         # Fit Riemannian metric
         logger.info("Fitting manifold geometry...")
-        from topo_llm.riemannian.metric import MetricTensorEstimator
         from topo_llm.riemannian.connection import ChristoffelEstimator
         from topo_llm.riemannian.geodesic import GeodesicSolver
+        from topo_llm.riemannian.metric import MetricTensorEstimator
 
         effective_neighbors = min(n_neighbors, len(documents) - 1)
         intrinsic_dim = min(10, self._embeddings.shape[1] - 1)
@@ -121,8 +122,10 @@ class GeodesicRetrieval:
 
         christoffel = ChristoffelEstimator(self._metric_estimator, h=1e-3)
         self._geodesic_solver = GeodesicSolver(
-            self._metric_estimator, christoffel,
-            dt=0.01, max_steps=200,
+            self._metric_estimator,
+            christoffel,
+            dt=0.01,
+            max_steps=200,
         )
 
         self._fitted = True
@@ -142,7 +145,7 @@ class GeodesicRetrieval:
         query_text: str,
         k: int = 5,
         method: str = "geodesic",
-    ) -> list[dict[str, object]]:
+    ) -> list[RetrievalResult]:
         """Retrieve nearest documents.
 
         Parameters
@@ -161,6 +164,8 @@ class GeodesicRetrieval:
         """
         if not self._fitted:
             raise RuntimeError("Must call index() first")
+        if not query_text or not query_text.strip():
+            raise ValueError("query_text must be a non-empty string")
 
         query_emb = self._embed_query(query_text)
         k = min(k, len(self._documents))
@@ -206,13 +211,9 @@ class GeodesicRetrieval:
             for idx in cand_indices:
                 idx = int(idx)
                 try:
-                    d = self._geodesic_solver.geodesic_distance(
-                        nearest_idx, idx, n_shooting=3
-                    )
-                except Exception:
-                    d = float(np.linalg.norm(
-                        self._embeddings[nearest_idx] - self._embeddings[idx]
-                    ))
+                    d = self._geodesic_solver.geodesic_distance(nearest_idx, idx, n_shooting=3)
+                except (RuntimeError, ValueError, np.linalg.LinAlgError):
+                    d = float(np.linalg.norm(self._embeddings[nearest_idx] - self._embeddings[idx]))
                 geo_dists.append((idx, d))
 
             geo_dists.sort(key=lambda x: x[1])
