@@ -136,7 +136,7 @@ def load_config(config_path: str | Path | None = None) -> Config:
 
     if path.exists():
         logger.info("Loading config from %s", path)
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             raw = yaml.safe_load(f) or {}
         return Config(**raw)
 
